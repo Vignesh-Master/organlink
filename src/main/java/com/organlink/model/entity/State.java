@@ -4,6 +4,12 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import lombok.ToString;
+import lombok.EqualsAndHashCode;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,6 +25,12 @@ import java.util.List;
        indexes = {
            @Index(name = "idx_state_country", columnList = "country_id")
        })
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@ToString(callSuper = true, exclude = {"hospitals"})
+@EqualsAndHashCode(callSuper = true, exclude = {"hospitals"})
 public class State extends BaseEntity {
 
     @NotBlank(message = "State name is required")
@@ -39,49 +51,14 @@ public class State extends BaseEntity {
     @OneToMany(mappedBy = "state", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Hospital> hospitals = new ArrayList<>();
 
-    // Constructors
-    public State() {}
-
+    // Custom constructor for convenience
     public State(String name, String code, Country country) {
         this.name = name;
         this.code = code;
         this.country = country;
     }
 
-    // Getters and Setters
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getCode() {
-        return code;
-    }
-
-    public void setCode(String code) {
-        this.code = code;
-    }
-
-    public Country getCountry() {
-        return country;
-    }
-
-    public void setCountry(Country country) {
-        this.country = country;
-    }
-
-    public List<Hospital> getHospitals() {
-        return hospitals;
-    }
-
-    public void setHospitals(List<Hospital> hospitals) {
-        this.hospitals = hospitals;
-    }
-
-    // Helper methods
+    // Helper methods for bidirectional relationship management
     public void addHospital(Hospital hospital) {
         hospitals.add(hospital);
         hospital.setState(this);
@@ -90,15 +67,5 @@ public class State extends BaseEntity {
     public void removeHospital(Hospital hospital) {
         hospitals.remove(hospital);
         hospital.setState(null);
-    }
-
-    @Override
-    public String toString() {
-        return "State{" +
-                "id=" + getId() +
-                ", name='" + name + '\'' +
-                ", code='" + code + '\'' +
-                ", country=" + (country != null ? country.getName() : null) +
-                '}';
     }
 }

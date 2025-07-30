@@ -5,9 +5,14 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import lombok.ToString;
+import lombok.EqualsAndHashCode;
 
-import java.util.ArrayList;
-import java.util.List;
+
 
 /**
  * Entity representing a hospital in the system
@@ -24,6 +29,12 @@ import java.util.List;
            @Index(name = "idx_hospital_active", columnList = "is_active"),
            @Index(name = "idx_hospital_tenant", columnList = "tenant_id")
        })
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@ToString(callSuper = true, exclude = {"state"})
+@EqualsAndHashCode(callSuper = true, exclude = {"state"})
 public class Hospital extends BaseEntity {
 
     @NotBlank(message = "Hospital name is required")
@@ -67,83 +78,17 @@ public class Hospital extends BaseEntity {
 
     // Note: User, Donor, Recipient relationships will be added when those entities are created
 
-    // Constructors
-    public Hospital() {}
-
+    // Custom constructor for convenience
     public Hospital(String name, String code, String tenantId, State state) {
         this.name = name;
-        this.code = code;
-        this.tenantId = tenantId;
+        this.code = code.toUpperCase();
+        this.tenantId = tenantId.toLowerCase();
         this.state = state;
     }
 
-    // Getters and Setters
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getCode() {
-        return code;
-    }
-
+    // Custom setters for business logic
     public void setCode(String code) {
         this.code = code.toUpperCase();
-    }
-
-    public String getAddress() {
-        return address;
-    }
-
-    public void setAddress(String address) {
-        this.address = address;
-    }
-
-    public String getPhone() {
-        return phone;
-    }
-
-    public void setPhone(String phone) {
-        this.phone = phone;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public State getState() {
-        return state;
-    }
-
-    public void setState(State state) {
-        this.state = state;
-    }
-
-    public String getLicenseNumber() {
-        return licenseNumber;
-    }
-
-    public void setLicenseNumber(String licenseNumber) {
-        this.licenseNumber = licenseNumber;
-    }
-
-    public Boolean getIsActive() {
-        return isActive;
-    }
-
-    public void setIsActive(Boolean isActive) {
-        this.isActive = isActive;
-    }
-
-    public String getTenantId() {
-        return tenantId;
     }
 
     public void setTenantId(String tenantId) {
@@ -151,15 +96,4 @@ public class Hospital extends BaseEntity {
     }
 
     // Helper methods will be added when User, Donor, Recipient entities are created
-
-    @Override
-    public String toString() {
-        return "Hospital{" +
-                "id=" + getId() +
-                ", name='" + name + '\'' +
-                ", code='" + code + '\'' +
-                ", tenantId='" + tenantId + '\'' +
-                ", isActive=" + isActive +
-                '}';
-    }
 }

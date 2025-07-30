@@ -3,6 +3,12 @@ package com.organlink.model.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import lombok.ToString;
+import lombok.EqualsAndHashCode;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,11 +17,17 @@ import java.util.List;
  * Entity representing a country in the location hierarchy
  */
 @Entity
-@Table(name = "countries", 
+@Table(name = "countries",
        uniqueConstraints = {
            @UniqueConstraint(columnNames = "name"),
            @UniqueConstraint(columnNames = "code")
        })
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@ToString(callSuper = true, exclude = {"states"})
+@EqualsAndHashCode(callSuper = true, exclude = {"states"})
 public class Country extends BaseEntity {
 
     @NotBlank(message = "Country name is required")
@@ -31,40 +43,18 @@ public class Country extends BaseEntity {
     @OneToMany(mappedBy = "country", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<State> states = new ArrayList<>();
 
-    // Constructors
-    public Country() {}
-
+    // Custom constructor for convenience
     public Country(String name, String code) {
         this.name = name;
-        this.code = code;
+        this.code = code.toUpperCase();
     }
 
-    // Getters and Setters
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getCode() {
-        return code;
-    }
-
+    // Custom setter to ensure uppercase code
     public void setCode(String code) {
         this.code = code.toUpperCase();
     }
 
-    public List<State> getStates() {
-        return states;
-    }
-
-    public void setStates(List<State> states) {
-        this.states = states;
-    }
-
-    // Helper methods
+    // Helper methods for bidirectional relationship management
     public void addState(State state) {
         states.add(state);
         state.setCountry(this);
@@ -73,14 +63,5 @@ public class Country extends BaseEntity {
     public void removeState(State state) {
         states.remove(state);
         state.setCountry(null);
-    }
-
-    @Override
-    public String toString() {
-        return "Country{" +
-                "id=" + getId() +
-                ", name='" + name + '\'' +
-                ", code='" + code + '\'' +
-                '}';
     }
 }
