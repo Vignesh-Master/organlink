@@ -1,7 +1,9 @@
 package com.organlink.controller;
 
 import com.organlink.model.dto.CountryDto;
+import com.organlink.model.dto.StateDto;
 import com.organlink.service.CountryService;
+import com.organlink.service.StateService;
 import com.organlink.utils.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -29,10 +31,12 @@ public class LocationController {
     private static final Logger logger = LoggerFactory.getLogger(LocationController.class);
 
     private final CountryService countryService;
+    private final StateService stateService;
 
     @Autowired
-    public LocationController(CountryService countryService) {
+    public LocationController(CountryService countryService, StateService stateService) {
         this.countryService = countryService;
+        this.stateService = stateService;
     }
 
     // ========== COUNTRY ENDPOINTS ==========
@@ -174,6 +178,50 @@ public class LocationController {
             countries
         );
         
+        return ResponseEntity.ok(response);
+    }
+
+    // ========== STATES ENDPOINTS ==========
+
+    /**
+     * Get all states
+     */
+    @GetMapping("/states")
+    @Operation(summary = "Get all states", description = "Retrieves all states in the system")
+    public ResponseEntity<ApiResponse<List<StateDto>>> getAllStates(
+            @Parameter(description = "Filter by country ID")
+            @RequestParam(required = false) Long countryId) {
+
+        logger.debug("Fetching all states, countryId: {}", countryId);
+
+        List<StateDto> states = countryId != null ?
+            stateService.getStatesByCountryId(countryId) :
+            stateService.getAllStates();
+
+        ApiResponse<List<StateDto>> response = ApiResponse.success(
+            "States retrieved successfully",
+            states
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Get state by ID
+     */
+    @GetMapping("/states/{id}")
+    @Operation(summary = "Get state by ID", description = "Retrieves a specific state by its ID")
+    public ResponseEntity<ApiResponse<StateDto>> getStateById(
+            @Parameter(description = "State ID") @PathVariable Long id) {
+
+        logger.debug("Fetching state by ID: {}", id);
+
+        StateDto state = stateService.getStateById(id);
+        ApiResponse<StateDto> response = ApiResponse.success(
+            "State retrieved successfully",
+            state
+        );
+
         return ResponseEntity.ok(response);
     }
 

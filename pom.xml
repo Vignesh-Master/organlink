@@ -16,7 +16,7 @@
     <description>Organ Donation Management System for Hospitals</description>
     
     <properties>
-        <java.version>24</java.version>
+        <java.version>21</java.version>
         <spring-ai.version>0.8.0</spring-ai.version>
     </properties>
 
@@ -31,6 +31,8 @@
         </repository>
     </repositories>
 
+    <!-- TEMPORARILY DISABLED FOR INITIAL BUILD -->
+    <!--
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -42,6 +44,7 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+    -->
     
     <dependencies>
         <!-- Spring Boot Starters -->
@@ -96,23 +99,25 @@
             <scope>runtime</scope>
         </dependency>
         
-        <!-- AI/ML Dependencies -->
+        <!-- AI/ML Dependencies - TEMPORARILY DISABLED FOR INITIAL BUILD -->
+        <!--
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-openai-spring-boot-starter</artifactId>
         </dependency>
-        
+
         <dependency>
             <groupId>org.deeplearning4j</groupId>
             <artifactId>deeplearning4j-core</artifactId>
             <version>1.0.0-M2.1</version>
         </dependency>
-        
+
         <dependency>
             <groupId>org.nd4j</groupId>
             <artifactId>nd4j-native-platform</artifactId>
             <version>1.0.0-M2.1</version>
         </dependency>
+        -->
         
         <!-- Utilities -->
         <dependency>
@@ -182,8 +187,13 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.11.0</version>
                 <configuration>
-                    <release>24</release>
+                    <release>21</release>
                     <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>1.18.30</version>
+                        </path>
                         <path>
                             <groupId>org.mapstruct</groupId>
                             <artifactId>mapstruct-processor</artifactId>
