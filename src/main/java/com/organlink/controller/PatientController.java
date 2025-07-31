@@ -3,6 +3,8 @@ package com.organlink.controller;
 import com.organlink.model.dto.PatientSummaryDto;
 import com.organlink.model.entity.Patient;
 import com.organlink.repository.PatientRepository;
+import com.organlink.service.AIOrganMatchingService;
+import com.organlink.service.AIOrganMatchingService.OrganMatchResult;
 import com.organlink.utils.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -34,6 +36,7 @@ public class PatientController {
     private static final Logger logger = LoggerFactory.getLogger(PatientController.class);
 
     private final PatientRepository patientRepository;
+    private final AIOrganMatchingService aiMatchingService;
 
     /**
      * Get patients for specific hospital (tenant-based)
@@ -117,12 +120,26 @@ public class PatientController {
         patient.setStatus("WAITING");
         
         Patient savedPatient = patientRepository.save(patient);
-        
+
+        // 🤖 TRIGGER AI MATCHING: This is your demo magic!
+        // When Delhi hospital registers kidney patient, AI finds Chennai liver donor
+        logger.info("🤖 TRIGGERING AI MATCHING for new patient: {}", savedPatient.getPatientName());
+
+        try {
+            List<OrganMatchResult> matches = aiMatchingService.findOptimalMatches(savedPatient);
+            logger.info("✅ AI MATCHING COMPLETE: Found {} matches for {}",
+                       matches.size(), savedPatient.getPatientName());
+        } catch (Exception e) {
+            logger.error("AI matching failed for patient {}: {}",
+                        savedPatient.getPatientName(), e.getMessage());
+            // Don't fail patient creation if AI matching fails
+        }
+
         ApiResponse<Patient> response = ApiResponse.success(
-            "Patient created successfully", 
+            "Patient created successfully and AI matching triggered",
             savedPatient
         );
-        
+
         return ResponseEntity.ok(response);
     }
 

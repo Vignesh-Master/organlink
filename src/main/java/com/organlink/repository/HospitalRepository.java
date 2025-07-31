@@ -24,6 +24,17 @@ public interface HospitalRepository extends JpaRepository<Hospital, Long> {
     Optional<Hospital> findByCodeIgnoreCase(String code);
 
     /**
+     * Find hospital by name (case-insensitive)
+     */
+    Optional<Hospital> findByNameIgnoreCase(String name);
+
+    /**
+     * Search hospitals by name or city containing search term
+     */
+    Page<Hospital> findByNameContainingIgnoreCaseOrCityContainingIgnoreCase(
+            String name, String city, Pageable pageable);
+
+    /**
      * Find hospital by tenant ID
      */
     Optional<Hospital> findByTenantId(String tenantId);

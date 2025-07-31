@@ -22,6 +22,21 @@ public interface StateRepository extends JpaRepository<State, Long> {
     List<State> findByCountryIdOrderByNameAsc(Long countryId);
 
     /**
+     * Find all states ordered by name
+     */
+    List<State> findAllByOrderByName();
+
+    /**
+     * Find state by code (case-insensitive)
+     */
+    Optional<State> findByCodeIgnoreCase(String code);
+
+    /**
+     * Find states by name containing search term (case-insensitive)
+     */
+    List<State> findByNameContainingIgnoreCaseOrderByName(String name);
+
+    /**
      * Find state by name and country ID (case-insensitive)
      */
     Optional<State> findByNameIgnoreCaseAndCountryId(String name, Long countryId);

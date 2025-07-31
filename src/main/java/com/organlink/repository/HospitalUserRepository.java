@@ -38,6 +38,11 @@ public interface HospitalUserRepository extends JpaRepository<HospitalUser, Long
     Optional<HospitalUser> findByUserIdAndIsActiveTrue(String userId);
 
     /**
+     * Count active hospital users
+     */
+    long countByIsActiveTrue();
+
+    /**
      * Update last login time
      */
     @Modifying

@@ -50,6 +50,16 @@ public class Hospital extends BaseEntity {
     @Column(name = "address", columnDefinition = "TEXT")
     private String address;
 
+    @Column(name = "city", length = 100)
+    private String city;
+
+    @Column(name = "contact_number", length = 20)
+    private String contactNumber;
+
+    @Email(message = "Invalid email format")
+    @Column(name = "email_address", length = 100)
+    private String emailAddress;
+
     @Size(max = 20, message = "Phone number cannot exceed 20 characters")
     @Column(name = "phone", length = 20)
     private String phone;

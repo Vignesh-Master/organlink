@@ -34,7 +34,7 @@ public class StateService {
     public List<StateDto> getAllStates() {
         logger.debug("Fetching all states");
 
-        List<State> states = stateRepository.findAllWithCountry();
+        List<State> states = stateRepository.findAllByOrderByName();
         return states.stream()
                 .map(stateMapper::toDto)
                 .collect(Collectors.toList());

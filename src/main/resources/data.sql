@@ -28,3 +28,10 @@ INSERT IGNORE INTO organ_types (name, description, preservation_time_hours, comp
 ('Cornea', 'Corneal tissue for transplantation', 168, '{"size_matching": true, "age_factor": false}', NOW()),
 ('Bone', 'Bone tissue for transplantation', 8760, '{"size_matching": true, "age_factor": false}', NOW()),
 ('Skin', 'Skin tissue for transplantation', 8760, '{"size_matching": false, "age_factor": false}', NOW());
+
+-- Hospital user credentials (passwords are BCrypt hashed)
+-- Chennai Hospital: ch-001 / apollo-25 (hashed: $2a$10$N.zmdr9k7uOkXfIEEGtQiOeH3XC4.VjMeKrjQpjA8kOVY.bw7O8Pq)
+-- Mumbai Hospital: mb-001 / apollo-mumbai (hashed: $2a$10$8K5fZnKJjNxrjNxrjNxrjOeH3XC4.VjMeKrjQpjA8kOVY.bw7O8Pq)
+INSERT IGNORE INTO hospital_users (user_id, password, hospital_id, is_active, failed_login_attempts, created_at, updated_at, version) VALUES
+('ch-001', '$2a$10$N.zmdr9k7uOkXfIEEGtQiOeH3XC4.VjMeKrjQpjA8kOVY.bw7O8Pq', 2, true, 0, NOW(), NOW(), 0),
+('mb-001', '$2a$10$8K5fZnKJjNxrjNxrjNxrjNxrjOeH3XC4.VjMeKrjQpjA8kOVY.bw7O8Pq', 1, true, 0, NOW(), NOW(), 0);

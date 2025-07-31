@@ -111,12 +111,19 @@ public class DonorController {
             @RequestBody Donor donor) {
         
         logger.info("Creating new donor for hospital: {}", tenantId);
-        
+
         // Set tenant ID and registration date
         donor.setTenantId(tenantId);
         donor.setRegistrationDate(LocalDateTime.now());
         donor.setIsActive(true);
         donor.setStatus("AVAILABLE");
+
+        // Set hospital ID based on tenant ID
+        if ("apollo-chennai".equals(tenantId)) {
+            donor.setHospitalId(2L); // Chennai Hospital ID
+        } else if ("apollo-mumbai".equals(tenantId)) {
+            donor.setHospitalId(1L); // Mumbai Hospital ID
+        }
         
         Donor savedDonor = donorRepository.save(donor);
         

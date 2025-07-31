@@ -98,7 +98,60 @@
             <version>0.12.3</version>
             <scope>runtime</scope>
         </dependency>
-        
+
+        <!-- Blockchain & IPFS Dependencies for Signature Verification -->
+        <!-- Web3j for Ethereum integration -->
+        <dependency>
+            <groupId>org.web3j</groupId>
+            <artifactId>core</artifactId>
+            <version>4.9.8</version>
+        </dependency>
+
+        <!-- IPFS Simulation - For demo purposes (production would use real IPFS) -->
+        <!-- Removed IPFS dependency to avoid Maven issues - using simulation instead -->
+
+        <!-- File Upload Support -->
+        <dependency>
+            <groupId>commons-fileupload</groupId>
+            <artifactId>commons-fileupload</artifactId>
+            <version>1.5</version>
+        </dependency>
+
+        <!-- Image Processing for Signature Verification -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-imaging</artifactId>
+            <version>1.0.0-alpha5</version>
+        </dependency>
+
+        <!-- Java-based OCR for Signature Recognition -->
+        <dependency>
+            <groupId>net.sourceforge.tess4j</groupId>
+            <artifactId>tess4j</artifactId>
+            <version>5.8.0</version>
+        </dependency>
+
+        <!-- Weka for Random Forest ML Model -->
+        <dependency>
+            <groupId>nz.ac.waikato.cms.weka</groupId>
+            <artifactId>weka-stable</artifactId>
+            <version>3.8.6</version>
+        </dependency>
+
+        <!-- Apache Commons Math for ML calculations -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-math3</artifactId>
+            <version>3.6.1</version>
+        </dependency>
+
+        <!-- Tesseract OCR for Signature Text Recognition -->
+        <dependency>
+            <groupId>net.sourceforge.tess4j</groupId>
+            <artifactId>tess4j</artifactId>
+            <version>5.8.0</version>
+        </dependency>
+
         <!-- AI/ML Dependencies - TEMPORARILY DISABLED FOR INITIAL BUILD -->
         <!--
         <dependency>
