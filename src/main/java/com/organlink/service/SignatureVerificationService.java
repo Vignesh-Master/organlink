@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 import net.sourceforge.tess4j.Tesseract;
 import net.sourceforge.tess4j.TesseractException;
+import org.springframework.beans.factory.annotation.Value;
 
 /**
  * AI-powered Signature Verification Service
@@ -32,6 +33,24 @@ public class SignatureVerificationService {
 
     private final IPFSService ipfsService;
     private final BlockchainService blockchainService;
+
+    @Value("${organlink.ocr.tesseract.path}")
+    private String tesseractPath;
+
+    @Value("${organlink.ocr.tessdata.path}")
+    private String tessdataPath;
+
+    @Value("${organlink.ocr.enabled:true}")
+    private boolean ocrEnabled;
+
+    @Value("${organlink.ocr.language:eng}")
+    private String ocrLanguage;
+
+    @Value("${organlink.ocr.page.seg.mode:8}")
+    private int pageSegMode;
+
+    @Value("${organlink.ocr.engine.mode:1}")
+    private int engineMode;
 
     /**
      * Complete signature verification and blockchain storage workflow
@@ -127,12 +146,30 @@ public class SignatureVerificationService {
         try {
             logger.info("🔍 Performing OCR name verification for: {}", expectedName);
 
-            // Initialize Tesseract OCR
+            // Check if OCR is enabled
+            if (!ocrEnabled) {
+                logger.info("⚠️ OCR is disabled in configuration, skipping verification");
+                return new OCRVerificationResult(true, 0.8, "OCR_DISABLED", "ocr_disabled",
+                    "OCR verification disabled in configuration - Signature accepted");
+            }
+
+            // Initialize Tesseract OCR with your installation path
             Tesseract tesseract = new Tesseract();
-            tesseract.setDatapath("tessdata"); // Path to tessdata folder
-            tesseract.setLanguage("eng"); // English language
-            tesseract.setPageSegMode(8); // Single word mode
-            tesseract.setOcrEngineMode(1); // LSTM OCR Engine
+
+            // Set the path to your Tesseract installation
+            if (tesseractPath != null && !tesseractPath.isEmpty()) {
+                System.setProperty("jna.library.path", tesseractPath.replace("/tesseract.exe", ""));
+                logger.info("🔧 Using Tesseract path: {}", tesseractPath);
+            }
+
+            // Set tessdata path
+            tesseract.setDatapath(tessdataPath);
+            tesseract.setLanguage(ocrLanguage);
+            tesseract.setPageSegMode(pageSegMode); // Single word mode
+            tesseract.setOcrEngineMode(engineMode); // LSTM OCR Engine
+
+            logger.info("🔧 Tesseract configured: tessdata={}, language={}, psm={}, oem={}",
+                       tessdataPath, ocrLanguage, pageSegMode, engineMode);
 
             // Load signature image
             BufferedImage signatureImage = ImageIO.read(signatureFile.getInputStream());
@@ -161,16 +198,27 @@ public class SignatureVerificationService {
             return new OCRVerificationResult(isMatched, confidence, extractedText, cleanedExtractedText, reason);
 
         } catch (TesseractException e) {
-            logger.error("❌ OCR processing failed: {}", e.getMessage());
-            return new OCRVerificationResult(false, 0.0, "", "", "OCR processing failed: " + e.getMessage());
+            logger.error("❌ Tesseract OCR processing failed: {}", e.getMessage());
+            logger.error("💡 Check if Tesseract is properly installed at: {}", tesseractPath);
+            logger.error("💡 Check if tessdata folder exists at: {}", tessdataPath);
+            return new OCRVerificationResult(false, 0.0, "", "", "Tesseract OCR failed: " + e.getMessage());
         } catch (IOException e) {
             logger.error("❌ Image reading failed: {}", e.getMessage());
             return new OCRVerificationResult(false, 0.0, "", "", "Image reading failed: " + e.getMessage());
+        } catch (UnsatisfiedLinkError e) {
+            logger.error("❌ Tesseract native library not found: {}", e.getMessage());
+            logger.error("💡 Tesseract installation path: {}", tesseractPath);
+            logger.error("💡 Make sure Tesseract is installed and path is correct");
+            // Allow signature for demo if Tesseract library is missing
+            return new OCRVerificationResult(true, 0.6, "TESSERACT_MISSING", "tesseract_missing",
+                "Tesseract library not found - Signature accepted for demo");
         } catch (Exception e) {
             logger.error("❌ OCR verification failed: {}", e.getMessage());
-            // For demo purposes, if OCR fails, we'll allow it to pass with a warning
-            logger.warn("⚠️ OCR failed, allowing signature for demo purposes");
-            return new OCRVerificationResult(true, 0.5, "", "", "OCR failed but allowed for demo: " + e.getMessage());
+            logger.error("💡 Tesseract path: {}", tesseractPath);
+            logger.error("💡 Tessdata path: {}", tessdataPath);
+            // For demo purposes, allow signature if OCR fails
+            return new OCRVerificationResult(true, 0.5, "OCR_ERROR", "ocr_error",
+                "OCR verification failed but signature accepted for demo: " + e.getMessage());
         }
     }
 

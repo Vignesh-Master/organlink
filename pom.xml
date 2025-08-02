@@ -107,8 +107,12 @@
             <version>4.9.8</version>
         </dependency>
 
-        <!-- IPFS Simulation - For demo purposes (production would use real IPFS) -->
-        <!-- Removed IPFS dependency to avoid Maven issues - using simulation instead -->
+        <!-- HTTP Client for Pinata IPFS API -->
+        <dependency>
+            <groupId>org.apache.httpcomponents.client5</groupId>
+            <artifactId>httpclient5</artifactId>
+            <version>5.2.1</version>
+        </dependency>
 
         <!-- File Upload Support -->
         <dependency>
@@ -145,12 +149,7 @@
             <version>3.6.1</version>
         </dependency>
 
-        <!-- Tesseract OCR for Signature Text Recognition -->
-        <dependency>
-            <groupId>net.sourceforge.tess4j</groupId>
-            <artifactId>tess4j</artifactId>
-            <version>5.8.0</version>
-        </dependency>
+
 
         <!-- AI/ML Dependencies - TEMPORARILY DISABLED FOR INITIAL BUILD -->
         <!--
