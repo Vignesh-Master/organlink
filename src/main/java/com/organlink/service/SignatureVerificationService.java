@@ -107,7 +107,7 @@ public class SignatureVerificationService {
                     .signerName(signerName)
                     .entityType(entityType)
                     .entityId(entityId)
-                    .hospitalId(hospitalId)
+                    .hospitalId(hospitalId.toString())
                     .timestamp(LocalDateTime.now())
                     .build();
 

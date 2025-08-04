@@ -25,7 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/signatures")
 @RequiredArgsConstructor
 @Tag(name = "Signature Verification", description = "AI-powered signature verification with blockchain storage")
-@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:3000"})
+@CrossOrigin(origins = {"http://localhost:5174", "http://localhost:5173"})
 public class SignatureController {
 
     private static final Logger logger = LoggerFactory.getLogger(SignatureController.class);

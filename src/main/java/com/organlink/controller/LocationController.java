@@ -25,7 +25,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/locations")
 @Tag(name = "Location Management", description = "APIs for managing countries and states in the location hierarchy")
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001"})
+@CrossOrigin(origins = {"http://localhost:5174", "http://localhost:5173"})
 public class LocationController {
 
     private static final Logger logger = LoggerFactory.getLogger(LocationController.class);

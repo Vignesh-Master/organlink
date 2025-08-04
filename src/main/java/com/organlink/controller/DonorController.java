@@ -28,7 +28,7 @@ import java.util.Optional;
 @RequestMapping("/donors")
 @RequiredArgsConstructor
 @Tag(name = "Donor Management", description = "Hospital-specific donor management APIs")
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:3001"})
+@CrossOrigin(origins = {"http://localhost:5174", "http://localhost:5173"})
 public class DonorController {
 
     private static final Logger logger = LoggerFactory.getLogger(DonorController.class);

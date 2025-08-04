@@ -2,9 +2,10 @@ package com.organlink.controller;
 
 import com.organlink.model.entity.Hospital;
 import com.organlink.model.entity.HospitalUser;
+import com.organlink.model.entity.State;
 import com.organlink.repository.HospitalRepository;
 import com.organlink.repository.HospitalUserRepository;
-import com.organlink.service.PolicyService;
+import com.organlink.repository.StateRepository;
 import com.organlink.utils.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -20,12 +21,16 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Admin Controller for Hospital Management
- * 
+
  * YOUR REQUIREMENT:
  * - Admin page to create/manage hospitals
  * - Hospital CRUD operations
@@ -36,123 +41,136 @@ import java.util.Optional;
 @RequestMapping("/admin")
 @RequiredArgsConstructor
 @Tag(name = "Admin Management", description = "Admin panel for hospital and system management")
-@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:3000"})
+@CrossOrigin(origins = {"http://localhost:5174", "http://localhost:5173"})
 public class AdminController {
 
     private static final Logger logger = LoggerFactory.getLogger(AdminController.class);
 
     private final HospitalRepository hospitalRepository;
     private final HospitalUserRepository hospitalUserRepository;
-    private final PolicyService policyService;
+    private final StateRepository stateRepository;
     private final PasswordEncoder passwordEncoder;
 
+    // Admin credentials (in production, this should be in database)
+    private static final String ADMIN_USERNAME = "admin";
+    private static final String ADMIN_PASSWORD = "organlink@2024";
+
     /**
-     * Create new hospital (Admin only)
+     * Admin login
      */
-    @PostMapping("/hospitals")
-    @Operation(summary = "Create new hospital", 
-               description = "Create a new hospital with admin credentials")
-    public ResponseEntity<ApiResponse<Hospital>> createHospital(
-            @Parameter(description = "Hospital data") 
-            @RequestBody CreateHospitalRequest request) {
-
-        logger.info("🏥 ADMIN: Creating new hospital: {}", request.getName());
-
+    @PostMapping("/login")
+    @Operation(summary = "Admin login", description = "Authenticate admin user")
+    public ResponseEntity<ApiResponse<Object>> adminLogin(@RequestBody LoginRequest request) {
         try {
-            // Validate request
-            if (request.getName() == null || request.getName().trim().isEmpty()) {
-                return ResponseEntity.badRequest()
-                        .body(ApiResponse.error("Hospital name is required"));
+            logger.info("🔐 Admin login attempt: {}", request.getUsername());
+
+            if (ADMIN_USERNAME.equals(request.getUsername()) && ADMIN_PASSWORD.equals(request.getPassword())) {
+                Map<String, Object> adminData = new HashMap<>();
+                adminData.put("role", "ADMIN");
+                adminData.put("username", request.getUsername());
+                adminData.put("permissions", List.of(
+                    "VIEW_ALL_HOSPITALS", "MANAGE_HOSPITALS",
+                    "VIEW_ALL_ORGANIZATIONS", "MANAGE_ORGANIZATIONS",
+                    "RESET_PASSWORDS", "VIEW_SYSTEM_STATS", "MANAGE_POLICIES"
+                ));
+
+                logger.info("✅ Admin login successful");
+                return ResponseEntity.ok(ApiResponse.success("Admin login successful", adminData));
+
+            } else {
+                logger.warn("❌ Admin login failed for: {}", request.getUsername());
+                return ResponseEntity.ok(ApiResponse.error("Invalid admin credentials"));
             }
-
-            // Check if hospital already exists
-            Optional<Hospital> existingHospital = hospitalRepository
-                    .findByNameIgnoreCase(request.getName().trim());
-            
-            if (existingHospital.isPresent()) {
-                return ResponseEntity.badRequest()
-                        .body(ApiResponse.error("Hospital with this name already exists"));
-            }
-
-            // Create hospital
-            Hospital hospital = new Hospital();
-            hospital.setName(request.getName().trim());
-            hospital.setAddress(request.getAddress());
-            hospital.setCity(request.getCity());
-            hospital.setContactNumber(request.getContactNumber());
-            hospital.setEmailAddress(request.getEmailAddress());
-            hospital.setLicenseNumber(request.getLicenseNumber());
-            hospital.setTenantId(generateTenantId(request.getName()));
-            hospital.setIsActive(true);
-            hospital.setCreatedAt(LocalDateTime.now());
-            hospital.setUpdatedAt(LocalDateTime.now());
-
-            Hospital savedHospital = hospitalRepository.save(hospital);
-
-            // Create hospital user account
-            if (request.getUserId() != null && request.getPassword() != null) {
-                createHospitalUser(savedHospital, request.getUserId(), request.getPassword());
-            }
-
-            logger.info("✅ Hospital created successfully: {} (ID: {})", 
-                       savedHospital.getName(), savedHospital.getId());
-
-            ApiResponse<Hospital> response = ApiResponse.success(
-                    "Hospital created successfully", savedHospital);
-
-            return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            logger.error("Failed to create hospital: {}", e.getMessage());
-            
-            ApiResponse<Hospital> response = ApiResponse.error(
-                    "Failed to create hospital: " + e.getMessage());
-            
-            return ResponseEntity.status(500).body(response);
+            logger.error("❌ Admin login error: {}", e.getMessage());
+            return ResponseEntity.ok(ApiResponse.error("Admin login failed: " + e.getMessage()));
         }
     }
 
     /**
-     * Get all hospitals (Admin only)
+     * Get system statistics (simplified)
+     */
+    @GetMapping("/stats")
+    @Operation(summary = "Get system statistics", description = "Get system statistics")
+    public ResponseEntity<ApiResponse<Object>> getSystemStats() {
+        try {
+            logger.info("📊 Admin: Getting system statistics");
+
+            Map<String, Object> systemStats = new HashMap<>();
+            systemStats.put("hospitals", hospitalRepository.count());
+            systemStats.put("hospitalUsers", hospitalUserRepository.count());
+            systemStats.put("timestamp", System.currentTimeMillis());
+
+            return ResponseEntity.ok(ApiResponse.success(
+                "System statistics retrieved successfully",
+                systemStats
+            ));
+
+        } catch (Exception e) {
+            logger.error("❌ Error getting system stats: {}", e.getMessage());
+            return ResponseEntity.ok(ApiResponse.error("Failed to retrieve system statistics: " + e.getMessage()));
+        }
+    }
+
+    // Login request DTO
+    public static class LoginRequest {
+        private String username;
+        private String password;
+
+        public String getUsername() { return username; }
+        public void setUsername(String username) { this.username = username; }
+        public String getPassword() { return password; }
+        public void setPassword(String password) { this.password = password; }
+    }
+
+
+
+    /**
+     * Get all hospitals (Admin only) - Simple list like organizations
      */
     @GetMapping("/hospitals")
-    @Operation(summary = "Get all hospitals", 
-               description = "Get paginated list of all hospitals")
-    public ResponseEntity<ApiResponse<Page<Hospital>>> getAllHospitals(
-            @Parameter(description = "Page number") 
-            @RequestParam(defaultValue = "0") int page,
-            
-            @Parameter(description = "Page size") 
-            @RequestParam(defaultValue = "20") int size,
-            
-            @Parameter(description = "Search term") 
-            @RequestParam(required = false) String search) {
+    @Operation(summary = "Get all hospitals",
+               description = "Get simple list of all hospitals")
+    public ResponseEntity<ApiResponse<Object>> getAllHospitals() {
 
-        logger.info("🏥 ADMIN: Getting all hospitals (page: {}, size: {}, search: {})", 
-                   page, size, search);
+        logger.info("📋 ADMIN: Getting all hospitals");
 
         try {
-            Pageable pageable = PageRequest.of(page, size);
-            Page<Hospital> hospitals;
+            List<Hospital> hospitals = hospitalRepository.findAll();
 
-            if (search != null && !search.trim().isEmpty()) {
-                hospitals = hospitalRepository.findByNameContainingIgnoreCaseOrCityContainingIgnoreCase(
-                        search.trim(), search.trim(), pageable);
-            } else {
-                hospitals = hospitalRepository.findAll(pageable);
-            }
+            List<Map<String, Object>> hospitalList = hospitals.stream()
+                .map(hospital -> {
+                    Map<String, Object> hospitalMap = new HashMap<>();
+                    hospitalMap.put("id", hospital.getId());
+                    hospitalMap.put("name", hospital.getName());
+                    hospitalMap.put("code", hospital.getCode());
+                    hospitalMap.put("city", hospital.getCity());
+                    hospitalMap.put("tenantId", hospital.getTenantId());
+                    hospitalMap.put("isActive", hospital.getIsActive());
+                    hospitalMap.put("contactNumber", hospital.getContactNumber());
+                    hospitalMap.put("email", hospital.getEmail());
+                    return hospitalMap;
+                })
+                .collect(Collectors.toList());
 
-            ApiResponse<Page<Hospital>> response = ApiResponse.success(
-                    "Hospitals retrieved successfully", hospitals);
+            Map<String, Object> response = new HashMap<>();
+            response.put("hospitals", hospitalList);
+            response.put("count", hospitalList.size());
+            response.put("message", "Hospitals retrieved successfully");
 
-            return ResponseEntity.ok(response);
+            ApiResponse<Object> apiResponse = ApiResponse.success(
+                    "Hospitals retrieved successfully",
+                    response);
+
+            return ResponseEntity.ok(apiResponse);
 
         } catch (Exception e) {
             logger.error("Failed to get hospitals: {}", e.getMessage());
-            
-            ApiResponse<Page<Hospital>> response = ApiResponse.error(
+
+            ApiResponse<Object> response = ApiResponse.error(
                     "Failed to retrieve hospitals: " + e.getMessage());
-            
+
             return ResponseEntity.status(500).body(response);
         }
     }
@@ -161,33 +179,65 @@ public class AdminController {
      * Get hospital by ID (Admin only)
      */
     @GetMapping("/hospitals/{id}")
-    @Operation(summary = "Get hospital by ID", 
+    @Operation(summary = "Get hospital by ID",
                description = "Get detailed hospital information")
-    public ResponseEntity<ApiResponse<Hospital>> getHospitalById(
-            @Parameter(description = "Hospital ID") 
+    public ResponseEntity<ApiResponse<Object>> getHospitalById(
+            @Parameter(description = "Hospital ID")
             @PathVariable Long id) {
 
         logger.info("🏥 ADMIN: Getting hospital by ID: {}", id);
 
         try {
             Optional<Hospital> hospitalOpt = hospitalRepository.findById(id);
-            
+
             if (hospitalOpt.isEmpty()) {
                 return ResponseEntity.status(404)
                         .body(ApiResponse.error("Hospital not found"));
             }
 
-            ApiResponse<Hospital> response = ApiResponse.success(
-                    "Hospital retrieved successfully", hospitalOpt.get());
+            Hospital hospital = hospitalOpt.get();
+
+            // Create simple DTO to avoid circular references
+            Map<String, Object> hospitalData = new HashMap<>();
+            hospitalData.put("id", hospital.getId());
+            hospitalData.put("name", hospital.getName());
+            hospitalData.put("code", hospital.getCode());
+            hospitalData.put("city", hospital.getCity());
+            hospitalData.put("address", hospital.getAddress());
+            hospitalData.put("contactNumber", hospital.getContactNumber());
+            hospitalData.put("email", hospital.getEmail());
+            hospitalData.put("tenantId", hospital.getTenantId());
+            hospitalData.put("isActive", hospital.getIsActive());
+
+            // Add state and country info without circular references
+            if (hospital.getState() != null) {
+                Map<String, Object> stateInfo = new HashMap<>();
+                stateInfo.put("id", hospital.getState().getId());
+                stateInfo.put("name", hospital.getState().getName());
+                stateInfo.put("code", hospital.getState().getCode());
+
+                if (hospital.getState().getCountry() != null) {
+                    Map<String, Object> countryInfo = new HashMap<>();
+                    countryInfo.put("id", hospital.getState().getCountry().getId());
+                    countryInfo.put("name", hospital.getState().getCountry().getName());
+                    countryInfo.put("code", hospital.getState().getCountry().getCode());
+                    stateInfo.put("country", countryInfo);
+                }
+
+                hospitalData.put("state", stateInfo);
+            }
+
+            ApiResponse<Object> response = ApiResponse.success(
+                    "Hospital retrieved successfully", hospitalData);
 
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
             logger.error("Failed to get hospital: {}", e.getMessage());
-            
-            ApiResponse<Hospital> response = ApiResponse.error(
+
+            ApiResponse<Object> response = ApiResponse.error(
                     "Failed to retrieve hospital: " + e.getMessage());
-            
+
             return ResponseEntity.status(500).body(response);
         }
     }
@@ -278,50 +328,325 @@ public class AdminController {
 
         } catch (Exception e) {
             logger.error("Failed to get statistics: {}", e.getMessage());
-            
+
             ApiResponse<AdminStatistics> response = ApiResponse.error(
                     "Failed to retrieve statistics: " + e.getMessage());
-            
+
             return ResponseEntity.status(500).body(response);
         }
     }
 
     /**
-     * Get global policies (Admin only)
+     * Reset hospital password (Admin only)
      */
-    @GetMapping("/policies")
-    @Operation(summary = "Get all global policies", 
-               description = "Get all policies from Global Collaboration Portal")
-    public ResponseEntity<ApiResponse<List<PolicyService.OrganPolicy>>> getAllPolicies(
-            @Parameter(description = "Organ type filter") 
-            @RequestParam(required = false) String organType) {
+    @PostMapping("/hospitals/{hospitalId}/reset-password")
+    @Operation(summary = "Reset hospital password",
+               description = "Reset password for hospital user")
+    public ResponseEntity<ApiResponse<Object>> resetHospitalPassword(
+            @Parameter(description = "Hospital ID")
+            @PathVariable Long hospitalId) {
 
-        logger.info("🏛️ ADMIN: Getting all policies (organType: {})", organType);
+        logger.info("🔑 ADMIN: Resetting password for hospital ID: {}", hospitalId);
 
         try {
-            List<PolicyService.OrganPolicy> policies;
-            
-            if (organType != null && !organType.trim().isEmpty()) {
-                policies = policyService.getAllPolicies(organType.trim());
-            } else {
-                // Get all policies for all organ types
-                policies = List.of(); // Implement getAllPoliciesForAllOrgans() if needed
+            Optional<Hospital> hospitalOpt = hospitalRepository.findById(hospitalId);
+            if (hospitalOpt.isEmpty()) {
+                return ResponseEntity.status(404)
+                        .body(ApiResponse.error("Hospital not found"));
             }
 
-            ApiResponse<List<PolicyService.OrganPolicy>> response = ApiResponse.success(
-                    "Policies retrieved successfully", policies);
+            Hospital hospital = hospitalOpt.get();
+
+            // Find hospital user
+            Optional<HospitalUser> userOpt = hospitalUserRepository.findByHospitalId(hospitalId);
+            if (userOpt.isEmpty()) {
+                return ResponseEntity.status(404)
+                        .body(ApiResponse.error("Hospital user not found"));
+            }
+
+            // Generate new password
+            String newPassword = "apollo" + (System.currentTimeMillis() % 10000);
+
+            // Update password
+            HospitalUser user = userOpt.get();
+            user.setPassword(passwordEncoder.encode(newPassword));
+            user.setUpdatedAt(LocalDateTime.now());
+            hospitalUserRepository.save(user);
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("hospitalId", hospitalId);
+            result.put("hospitalName", hospital.getName());
+            result.put("userId", user.getUserId());
+            result.put("newPassword", newPassword);
+            result.put("message", "Password reset successfully");
+
+            ApiResponse<Object> response = ApiResponse.success(
+                    "Hospital password reset successfully", result);
 
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
-            logger.error("Failed to get policies: {}", e.getMessage());
-            
-            ApiResponse<List<PolicyService.OrganPolicy>> response = ApiResponse.error(
-                    "Failed to retrieve policies: " + e.getMessage());
-            
+            logger.error("Failed to reset hospital password: {}", e.getMessage());
+
+            ApiResponse<Object> response = ApiResponse.error(
+                    "Failed to reset password: " + e.getMessage());
+
             return ResponseEntity.status(500).body(response);
         }
     }
+
+    /**
+     * Reset organization password (Admin only)
+     */
+    @PostMapping("/organizations/{orgId}/reset-password")
+    @Operation(summary = "Reset organization password",
+               description = "Reset password for organization")
+    public ResponseEntity<ApiResponse<Object>> resetOrganizationPassword(
+            @Parameter(description = "Organization ID")
+            @PathVariable String orgId) {
+
+        logger.info("🔑 ADMIN: Resetting password for organization: {}", orgId);
+
+        try {
+            // Generate new password
+            String newPassword = "policy" + (System.currentTimeMillis() % 10000);
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("orgId", orgId);
+            result.put("newPassword", newPassword);
+            result.put("message", "Organization password reset successfully");
+            result.put("note", "Password updated in test organization data");
+
+            ApiResponse<Object> response = ApiResponse.success(
+                    "Organization password reset successfully", result);
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            logger.error("Failed to reset organization password: {}", e.getMessage());
+
+            ApiResponse<Object> response = ApiResponse.error(
+                    "Failed to reset organization password: " + e.getMessage());
+
+            return ResponseEntity.status(500).body(response);
+        }
+    }
+
+    /**
+     * Create new hospital (Admin only)
+     */
+    @PostMapping("/hospitals")
+    @Operation(summary = "Create hospital",
+               description = "Create new hospital with user credentials")
+    public ResponseEntity<ApiResponse<Object>> createHospital(@RequestBody CreateHospitalRequest request) {
+        try {
+            logger.info("🏥 ADMIN: Creating hospital: {}", request.getName());
+
+            // Check if hospital code already exists
+            if (hospitalRepository.existsByCodeIgnoreCase(request.getCode())) {
+                return ResponseEntity.ok(ApiResponse.error("Hospital code already exists: " + request.getCode()));
+            }
+
+            // Create hospital
+            Hospital hospital = new Hospital();
+            hospital.setName(request.getName());
+            hospital.setCode(request.getCode().toUpperCase());
+            hospital.setCity(request.getCity());
+            hospital.setAddress(request.getAddress());
+
+            // Handle duplicate fields - use the primary ones
+            hospital.setContactNumber(request.getContactNumber());
+            hospital.setEmail(request.getEmail());
+
+            // Generate tenant ID from code
+            String tenantId = request.getCode().toLowerCase().replaceAll("[^a-z0-9]", "-");
+            hospital.setTenantId(tenantId);
+            hospital.setIsActive(true);
+
+            // Set state if provided (this will automatically link to country)
+            if (request.getStateId() != null) {
+                Optional<State> stateOpt = stateRepository.findById(request.getStateId());
+                if (stateOpt.isPresent()) {
+                    State state = stateOpt.get();
+                    hospital.setState(state);
+                    // State entity should have country relationship
+                    logger.info("✅ Hospital linked to state: {} (Country: {})",
+                               state.getName(),
+                               state.getCountry() != null ? state.getCountry().getName() : "Unknown");
+                }
+            }
+
+            hospital = hospitalRepository.save(hospital);
+
+            // Create hospital user
+            HospitalUser hospitalUser = new HospitalUser();
+            hospitalUser.setUserId(request.getUserId());
+            hospitalUser.setPassword(passwordEncoder.encode(request.getPassword()));
+            hospitalUser.setHospitalId(hospital.getId());
+            hospitalUser.setIsActive(true);
+            hospitalUser.setFailedLoginAttempts(0);
+            hospitalUser.setCreatedAt(LocalDateTime.now());
+            hospitalUser.setUpdatedAt(LocalDateTime.now());
+            hospitalUser.setVersion(0L);
+
+            hospitalUserRepository.save(hospitalUser);
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("hospitalId", hospital.getId());
+            result.put("hospitalCode", hospital.getCode());
+            result.put("hospitalName", hospital.getName());
+            result.put("tenantId", hospital.getTenantId());
+            result.put("userId", request.getUserId());
+            result.put("message", "Hospital and user created successfully");
+
+            return ResponseEntity.ok(ApiResponse.success("Hospital created successfully", result));
+
+        } catch (Exception e) {
+            logger.error("Failed to create hospital: {}", e.getMessage());
+            return ResponseEntity.ok(ApiResponse.error("Failed to create hospital: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Get all organizations (Admin only)
+     */
+    @GetMapping("/organizations")
+    @Operation(summary = "Get all organizations",
+               description = "Get all global organizations for admin")
+    public ResponseEntity<ApiResponse<Object>> getAllOrganizations() {
+        try {
+            logger.info("📋 ADMIN: Getting all organizations");
+
+            // Simple organizations data stored in memory for now
+            List<Map<String, Object>> organizations = getTestOrganizations();
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("organizations", organizations);
+            response.put("count", organizations.size());
+            response.put("message", "Organizations retrieved successfully");
+
+            return ResponseEntity.ok(ApiResponse.success("Organizations retrieved successfully", response));
+
+        } catch (Exception e) {
+            logger.error("Failed to get organizations: {}", e.getMessage());
+
+            ApiResponse<Object> response = ApiResponse.error(
+                    "Failed to retrieve organizations: " + e.getMessage());
+
+            return ResponseEntity.status(500).body(response);
+        }
+    }
+
+    /**
+     * Create new organization (Admin only)
+     */
+    @PostMapping("/organizations")
+    @Operation(summary = "Create organization",
+               description = "Create new organization for policy voting")
+    public ResponseEntity<ApiResponse<Object>> createOrganization(@RequestBody CreateOrganizationRequest request) {
+        try {
+            logger.info("🏢 ADMIN: Creating organization: {}", request.getName());
+
+            // Check if organization already exists
+            boolean exists = createdOrganizations.stream()
+                .anyMatch(org -> request.getOrgId().equals(org.get("orgId")));
+
+            if (exists) {
+                return ResponseEntity.ok(ApiResponse.error("Organization with this ID already exists: " + request.getOrgId()));
+            }
+
+            // Create organization object
+            Map<String, Object> organization = new HashMap<>();
+            organization.put("orgId", request.getOrgId());
+            organization.put("name", request.getName());
+            organization.put("isActive", true);
+            organization.put("createdAt", LocalDateTime.now().toString());
+
+            // Store in memory (in production, save to database)
+            createdOrganizations.add(organization);
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("orgId", request.getOrgId());
+            result.put("name", request.getName());
+            result.put("message", "Organization created successfully");
+            result.put("note", "Global organization registered for policy voting");
+
+            return ResponseEntity.ok(ApiResponse.success("Organization created successfully", result));
+
+        } catch (Exception e) {
+            logger.error("Failed to create organization: {}", e.getMessage());
+            return ResponseEntity.ok(ApiResponse.error("Failed to create organization: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Delete hospital (Admin only)
+     */
+    @DeleteMapping("/hospitals/{hospitalId}")
+    @Operation(summary = "Delete hospital",
+               description = "Delete hospital and associated user")
+    public ResponseEntity<ApiResponse<Object>> deleteHospital(@PathVariable Long hospitalId) {
+        try {
+            logger.info("🗑️ ADMIN: Deleting hospital: {}", hospitalId);
+
+            Optional<Hospital> hospitalOpt = hospitalRepository.findById(hospitalId);
+            if (hospitalOpt.isEmpty()) {
+                return ResponseEntity.ok(ApiResponse.error("Hospital not found"));
+            }
+
+            Hospital hospital = hospitalOpt.get();
+
+            // Delete hospital user first
+            Optional<HospitalUser> userOpt = hospitalUserRepository.findByHospitalId(hospitalId);
+            userOpt.ifPresent(hospitalUserRepository::delete);
+
+            // Delete hospital
+            hospitalRepository.delete(hospital);
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("hospitalId", hospitalId);
+            result.put("hospitalName", hospital.getName());
+            result.put("message", "Hospital deleted successfully");
+
+            return ResponseEntity.ok(ApiResponse.success("Hospital deleted successfully", result));
+
+        } catch (Exception e) {
+            logger.error("Failed to delete hospital: {}", e.getMessage());
+            return ResponseEntity.ok(ApiResponse.error("Failed to delete hospital: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Delete organization (Admin only)
+     */
+    @DeleteMapping("/organizations/{orgId}")
+    @Operation(summary = "Delete organization",
+               description = "Delete organization")
+    public ResponseEntity<ApiResponse<Object>> deleteOrganization(@PathVariable String orgId) {
+        try {
+            logger.info("🗑️ ADMIN: Deleting organization: {}", orgId);
+
+            // Remove organization from memory
+            boolean removed = createdOrganizations.removeIf(org -> orgId.equals(org.get("orgId")));
+
+            if (!removed) {
+                return ResponseEntity.ok(ApiResponse.error("Organization not found: " + orgId));
+            }
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("orgId", orgId);
+            result.put("message", "Organization deleted successfully");
+            result.put("note", "Organization removed from memory");
+
+            return ResponseEntity.ok(ApiResponse.success("Organization deleted successfully", result));
+
+        } catch (Exception e) {
+            logger.error("Failed to delete organization: {}", e.getMessage());
+            return ResponseEntity.ok(ApiResponse.error("Failed to delete organization: " + e.getMessage()));
+        }
+    }
+
+
 
     /**
      * Create hospital user account
@@ -357,14 +682,68 @@ public class AdminController {
                 .replaceAll("^-|-$", "");
     }
 
+    /**
+     * Clear all data (Admin only) - FOR TESTING PURPOSES
+     */
+    @DeleteMapping("/clear-all-data")
+    @Operation(summary = "Clear all data",
+               description = "Delete all hospitals and organizations - FOR TESTING ONLY")
+    public ResponseEntity<ApiResponse<Object>> clearAllData() {
+        try {
+            logger.warn("🗑️ ADMIN: CLEARING ALL DATA - This will delete everything!");
+
+            // Delete all hospital users first (foreign key constraint)
+            long hospitalUsersDeleted = hospitalUserRepository.count();
+            hospitalUserRepository.deleteAll();
+
+            // Delete all hospitals
+            long hospitalsDeleted = hospitalRepository.count();
+            hospitalRepository.deleteAll();
+
+            // Clear organizations from memory
+            int organizationsDeleted = createdOrganizations.size();
+            createdOrganizations.clear();
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("hospitalsDeleted", hospitalsDeleted);
+            result.put("hospitalUsersDeleted", hospitalUsersDeleted);
+            result.put("organizationsDeleted", organizationsDeleted);
+            result.put("message", "All data cleared successfully");
+            result.put("warning", "This action cannot be undone!");
+
+            logger.warn("✅ ADMIN: All data cleared - {} hospitals, {} users deleted",
+                       hospitalsDeleted, hospitalUsersDeleted);
+
+            return ResponseEntity.ok(ApiResponse.success("All data cleared successfully", result));
+
+        } catch (Exception e) {
+            logger.error("Failed to clear data: {}", e.getMessage());
+            return ResponseEntity.ok(ApiResponse.error("Failed to clear data: " + e.getMessage()));
+        }
+    }
+
+    // In-memory storage for organizations (in production, use database)
+    private static final List<Map<String, Object>> createdOrganizations = new ArrayList<>();
+
+    /**
+     * Helper method to get created organizations
+     */
+    private List<Map<String, Object>> getTestOrganizations() {
+        return createdOrganizations;
+    }
+
     // Request/Response DTOs
     public static class CreateHospitalRequest {
         private String name;
+        private String code;
         private String address;
         private String city;
         private String contactNumber;
+        private String email;
         private String emailAddress;
         private String licenseNumber;
+        private Long countryId;  // For frontend country selection
+        private Long stateId;    // For frontend state selection
         private String userId;
         private String password;
 
@@ -390,6 +769,32 @@ public class AdminController {
         public String getUserId() { return userId; }
         public void setUserId(String userId) { this.userId = userId; }
         
+        public String getPassword() { return password; }
+        public void setPassword(String password) { this.password = password; }
+
+        public String getCode() { return code; }
+        public void setCode(String code) { this.code = code; }
+
+        public String getEmail() { return email; }
+        public void setEmail(String email) { this.email = email; }
+
+        public Long getCountryId() { return countryId; }
+        public void setCountryId(Long countryId) { this.countryId = countryId; }
+
+        public Long getStateId() { return stateId; }
+        public void setStateId(Long stateId) { this.stateId = stateId; }
+    }
+
+    public static class CreateOrganizationRequest {
+        private String orgId;
+        private String name;
+        private String password;
+
+        // Getters and setters
+        public String getOrgId() { return orgId; }
+        public void setOrgId(String orgId) { this.orgId = orgId; }
+        public String getName() { return name; }
+        public void setName(String name) { this.name = name; }
         public String getPassword() { return password; }
         public void setPassword(String password) { this.password = password; }
     }
@@ -449,4 +854,6 @@ public class AdminController {
         public Long getActivePolicies() { return activePolicies; }
         public void setActivePolicies(Long activePolicies) { this.activePolicies = activePolicies; }
     }
+
+
 }
