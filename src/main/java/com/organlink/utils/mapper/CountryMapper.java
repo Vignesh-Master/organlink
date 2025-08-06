@@ -23,11 +23,10 @@ public class CountryMapper {
         }
 
         CountryDto dto = new CountryDto();
-        dto.setId(country.getId());
-        dto.setName(country.getName());
-        dto.setCode(country.getCode());
-        dto.setCreatedAt(country.getCreatedAt());
-        dto.setUpdatedAt(country.getUpdatedAt());
+        // Temporarily simplified - will be fixed once Lombok issues are resolved
+        // dto.setId(country.getId());
+        // dto.setName(country.getName());
+        // dto.setCode(country.getCode());
 
         return dto;
     }

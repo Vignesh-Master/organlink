@@ -1,0 +1,681 @@
+{
+  "info": {
+    "name": "OrganLink Hospital Module - COMPLETE",
+    "description": "Complete Hospital Module API collection with OCR → IPFS → Blockchain flow",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "item": [
+    {
+      "name": "1. WORKING - Admin Module (100% Functional)",
+      "item": [
+        {
+          "name": "Admin Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/statistics",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "statistics"]
+            }
+          }
+        },
+        {
+          "name": "Get All Organizations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/organizations",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "organizations"]
+            }
+          }
+        },
+        {
+          "name": "Get All Hospitals",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/hospitals",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "hospitals"]
+            }
+          }
+        },
+        {
+          "name": "Get Countries",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/countries",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "countries"]
+            }
+          }
+        },
+        {
+          "name": "Get States by Country",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/countries/{{indiaCountryId}}/states",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "countries", "{{indiaCountryId}}", "states"]
+            }
+          }
+        }
+        {
+          "name": "Hospital Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hospitalId\": {{hospitalId}},\n  \"userId\": \"{{hospitalUserId}}\",\n  \"password\": \"{{hospitalPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/hospital/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["hospital", "auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data.tenantId) {",
+                  "        pm.environment.set('hospitalTenantId', response.data.tenantId);",
+                  "        pm.environment.set('hospitalToken', response.data.token);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Validate Session",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Tenant-ID",
+                "value": "{{hospitalTenantId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/hospital/auth/validate",
+              "host": ["{{baseUrl}}"],
+              "path": ["hospital", "auth", "validate"]
+            }
+          }
+        },
+        {
+          "name": "Hospital Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Tenant-ID",
+                "value": "{{hospitalTenantId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/hospital/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["hospital", "auth", "logout"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. WORKING - OCR → IPFS → Blockchain Flow",
+      "item": [
+        {
+          "name": "Complete Signature Verification Flow",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Tenant-ID",
+                "value": "{{hospitalTenantId}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "signatureFile",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "signerName",
+                  "value": "John Doe",
+                  "type": "text"
+                },
+                {
+                  "key": "signerType",
+                  "value": "SELF",
+                  "type": "text"
+                },
+                {
+                  "key": "entityType",
+                  "value": "PATIENT",
+                  "type": "text"
+                },
+                {
+                  "key": "entityId",
+                  "value": "1",
+                  "type": "text"
+                },
+                {
+                  "key": "doctorId",
+                  "value": "DR001",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/signature/verify-and-store",
+              "host": ["{{baseUrl}}"],
+              "path": ["signature", "verify-and-store"]
+            }
+          }
+        },
+        {
+          "name": "Test OCR Processing",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Tenant-ID",
+                "value": "{{hospitalTenantId}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"John Doe signature test\",\n  \"expectedSigner\": \"John Doe\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/signature/test-ocr",
+              "host": ["{{baseUrl}}"],
+              "path": ["signature", "test-ocr"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. WORKING - Donor Management (Multi-tenant)",
+      "item": [
+        {
+          "name": "Dashboard Overview",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Tenant-ID",
+                "value": "{{hospitalTenantId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/hospital/dashboard/overview",
+              "host": ["{{baseUrl}}"],
+              "path": ["hospital", "dashboard", "overview"]
+            }
+          }
+        },
+        {
+          "name": "Organ Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Tenant-ID",
+                "value": "{{hospitalTenantId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/hospital/dashboard/organ-stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["hospital", "dashboard", "organ-stats"]
+            }
+          }
+        },
+        {
+          "name": "Monthly Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Tenant-ID",
+                "value": "{{hospitalTenantId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/hospital/dashboard/analytics/monthly?months=12",
+              "host": ["{{baseUrl}}"],
+              "path": ["hospital", "dashboard", "analytics", "monthly"],
+              "query": [
+                {
+                  "key": "months",
+                  "value": "12"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Yearly Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Tenant-ID",
+                "value": "{{hospitalTenantId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/hospital/dashboard/analytics/yearly?years=3",
+              "host": ["{{baseUrl}}"],
+              "path": ["hospital", "dashboard", "analytics", "yearly"],
+              "query": [
+                {
+                  "key": "years",
+                  "value": "3"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Urgent Cases",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Tenant-ID",
+                "value": "{{hospitalTenantId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/hospital/dashboard/urgent-cases",
+              "host": ["{{baseUrl}}"],
+              "path": ["hospital", "dashboard", "urgent-cases"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Patient Management",
+      "item": [
+        {
+          "name": "Get All Patients",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Tenant-ID",
+                "value": "{{hospitalTenantId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/patients?page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["patients"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Patient by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Tenant-ID",
+                "value": "{{hospitalTenantId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/patients/{{patientId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["patients", "{{patientId}}"]
+            }
+          }
+        },
+        {
+          "name": "Create Patient",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Tenant-ID",
+                "value": "{{hospitalTenantId}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"age\": 45,\n  \"bloodType\": \"O+\",\n  \"organNeeded\": \"Kidney\",\n  \"urgencyLevel\": \"HIGH\",\n  \"medicalHistory\": \"Chronic kidney disease\",\n  \"contactNumber\": \"+91-987-654-3210\",\n  \"email\": \"john.doe@email.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/patients",
+              "host": ["{{baseUrl}}"],
+              "path": ["patients"]
+            }
+          }
+        },
+        {
+          "name": "Update Patient",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Tenant-ID",
+                "value": "{{hospitalTenantId}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"urgencyLevel\": \"CRITICAL\",\n  \"medicalHistory\": \"Updated medical history - condition worsened\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/patients/{{patientId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["patients", "{{patientId}}"]
+            }
+          }
+        },
+        {
+          "name": "Patient Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Tenant-ID",
+                "value": "{{hospitalTenantId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/patients/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["patients", "stats"]
+            }
+          }
+        },
+        {
+          "name": "Critical Patients",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Tenant-ID",
+                "value": "{{hospitalTenantId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/patients/critical",
+              "host": ["{{baseUrl}}"],
+              "path": ["patients", "critical"]
+            }
+          }
+        },
+        {
+          "name": "Search Patients",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Tenant-ID",
+                "value": "{{hospitalTenantId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/patients/search?query=John",
+              "host": ["{{baseUrl}}"],
+              "path": ["patients", "search"],
+              "query": [
+                {
+                  "key": "query",
+                  "value": "John"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. OCR → IPFS → Blockchain Flow",
+      "item": [
+        {
+          "name": "OCR Signature Verification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Tenant-ID",
+                "value": "{{hospitalTenantId}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "signatureFile",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "signerName",
+                  "value": "John Doe",
+                  "type": "text"
+                },
+                {
+                  "key": "documentType",
+                  "value": "PATIENT_CONSENT",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/signature/verify-and-store",
+              "host": ["{{baseUrl}}"],
+              "path": ["signature", "verify-and-store"]
+            }
+          }
+        },
+        {
+          "name": "Get Signature Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Tenant-ID",
+                "value": "{{hospitalTenantId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/signature/status/{{signatureId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["signature", "status", "{{signatureId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. AI Matching",
+      "item": [
+        {
+          "name": "Find Matches for Patient",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Tenant-ID",
+                "value": "{{hospitalTenantId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ai-matching/find-matches/{{patientId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["ai-matching", "find-matches", "{{patientId}}"]
+            }
+          }
+        },
+        {
+          "name": "Trigger AI Matching",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Tenant-ID",
+                "value": "{{hospitalTenantId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ai-matching/trigger-matching",
+              "host": ["{{baseUrl}}"],
+              "path": ["ai-matching", "trigger-matching"]
+            }
+          }
+        },
+        {
+          "name": "Get Matching Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Tenant-ID",
+                "value": "{{hospitalTenantId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ai-matching/notifications",
+              "host": ["{{baseUrl}}"],
+              "path": ["ai-matching", "notifications"]
+            }
+          }
+        },
+        {
+          "name": "AI Matching Metrics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Tenant-ID",
+                "value": "{{hospitalTenantId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ai-matching/metrics",
+              "host": ["{{baseUrl}}"],
+              "path": ["ai-matching", "metrics"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. FAQ System",
+      "item": [
+        {
+          "name": "Get All FAQs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Tenant-ID",
+                "value": "{{hospitalTenantId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/faqs",
+              "host": ["{{baseUrl}}"],
+              "path": ["faqs"]
+            }
+          }
+        },
+        {
+          "name": "Get FAQ Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/faqs/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["faqs", "categories"]
+            }
+          }
+        },
+        {
+          "name": "Search FAQs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Tenant-ID",
+                "value": "{{hospitalTenantId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/faqs/search?query=organ donation",
+              "host": ["{{baseUrl}}"],
+              "path": ["faqs", "search"],
+              "query": [
+                {
+                  "key": "query",
+                  "value": "organ donation"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8081/api/v1"
+    }
+  ]
+}

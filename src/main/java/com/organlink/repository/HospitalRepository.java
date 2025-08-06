@@ -65,6 +65,16 @@ public interface HospitalRepository extends JpaRepository<Hospital, Long> {
     List<Hospital> findByIsActiveTrueOrderByNameAsc();
 
     /**
+     * Find all active hospitals (simplified method)
+     */
+    List<Hospital> findByIsActiveTrue();
+
+    /**
+     * Find active hospitals by state ID (simplified method)
+     */
+    List<Hospital> findByStateIdAndIsActiveTrue(Long stateId);
+
+    /**
      * Find hospital with state and country information by ID
      */
     @Query("SELECT h FROM Hospital h " +

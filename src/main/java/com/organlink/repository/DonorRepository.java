@@ -13,15 +13,10 @@ import java.util.Optional;
 
 /**
  * Repository interface for Donor entity
- * Handles database operations for donor management with multi-tenant support
+ * Handles database operations for donor management
  */
 @Repository
 public interface DonorRepository extends JpaRepository<Donor, Long> {
-
-    /**
-     * Find donors by tenant ID (hospital-specific)
-     */
-    Page<Donor> findByTenantIdAndIsActiveTrue(String tenantId, Pageable pageable);
 
     /**
      * Find donors by hospital ID
@@ -29,51 +24,51 @@ public interface DonorRepository extends JpaRepository<Donor, Long> {
     Page<Donor> findByHospitalIdAndIsActiveTrue(Long hospitalId, Pageable pageable);
 
     /**
-     * Find donor by ID and tenant ID (security check)
+     * Find donor by ID and hospital ID (security check)
      */
-    Optional<Donor> findByIdAndTenantId(Long id, String tenantId);
+    Optional<Donor> findByIdAndHospitalId(Long id, Long hospitalId);
 
     /**
-     * Find available donors by organ type and tenant ID
+     * Find active donors
      */
-    List<Donor> findByOrganAvailableAndTenantIdAndStatusAndIsActiveTrue(
-            String organAvailable, String tenantId, String status);
+    List<Donor> findByIsActiveTrue();
 
     /**
-     * Find available donors by organ type (cross-hospital matching)
+     * Find donors by blood group (for matching)
      */
-    List<Donor> findByOrganAvailableAndStatusAndIsActiveTrue(String organAvailable, String status);
+    @Query("SELECT d FROM Donor d WHERE d.bloodGroup = :bloodGroup AND d.isActive = true")
+    List<Donor> findCompatibleDonors(@Param("bloodGroup") String bloodGroup);
 
     /**
-     * Find donors by blood type and organ type (for matching)
+     * Search donors by name
      */
-    @Query("SELECT d FROM Donor d WHERE d.bloodType = :bloodType AND d.organAvailable = :organType " +
-           "AND d.status = 'AVAILABLE' AND d.isActive = true")
-    List<Donor> findCompatibleDonors(@Param("bloodType") String bloodType, 
-                                   @Param("organType") String organType);
+    @Query("SELECT d FROM Donor d WHERE d.isActive = true " +
+           "AND (UPPER(d.firstName) LIKE UPPER(CONCAT('%', :searchTerm, '%')) " +
+           "OR UPPER(d.lastName) LIKE UPPER(CONCAT('%', :searchTerm, '%')))")
+    Page<Donor> searchDonors(@Param("searchTerm") String searchTerm, Pageable pageable);
 
     /**
-     * Search donors by name within tenant
+     * Count active donors
      */
-    @Query("SELECT d FROM Donor d WHERE d.tenantId = :tenantId AND d.isActive = true " +
-           "AND (UPPER(d.donorName) LIKE UPPER(CONCAT('%', :searchTerm, '%')) " +
-           "OR UPPER(d.contactPerson) LIKE UPPER(CONCAT('%', :searchTerm, '%')))")
-    Page<Donor> searchDonorsByTenant(@Param("tenantId") String tenantId, 
-                                   @Param("searchTerm") String searchTerm, 
-                                   Pageable pageable);
+    long countByIsActiveTrue();
 
     /**
-     * Count active donors by tenant
+     * Count active donors by hospital
      */
-    long countByTenantIdAndIsActiveTrue(String tenantId);
+    long countByHospitalIdAndIsActiveTrue(Long hospitalId);
 
     /**
-     * Count available donors by tenant
+     * Find donors by hospital
      */
-    long countByTenantIdAndStatusAndIsActiveTrue(String tenantId, String status);
+    List<Donor> findByHospitalIdAndIsActiveTrue(Long hospitalId);
 
     /**
-     * Find donors by status and tenant
+     * Find donors by blood group and hospital
      */
-    List<Donor> findByTenantIdAndStatusAndIsActiveTrue(String tenantId, String status);
+    List<Donor> findByBloodGroupAndHospitalIdAndIsActiveTrue(String bloodGroup, Long hospitalId);
+
+    /**
+     * Find donors by state
+     */
+    List<Donor> findByStateIdAndIsActiveTrue(Long stateId);
 }

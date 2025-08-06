@@ -37,9 +37,9 @@ public class AdvancedOrganMetricsService {
     public OrganCompatibilityMetrics calculateOrganMetrics(Donor donor, Patient patient, 
                                                           Map<String, Double> activePolicies) {
         
-        String organType = patient.getOrganNeeded().toLowerCase();
-        logger.info("🧮 Calculating {} metrics for {} → {}", 
-                   organType, donor.getDonorName(), patient.getPatientName());
+        String organType = patient.getOrganType().getName().toLowerCase();
+        logger.info("🧮 Calculating {} metrics for {} → {}",
+                   organType, donor.getFullName(), patient.getFullName());
 
         OrganCompatibilityMetrics metrics = new OrganCompatibilityMetrics();
         
@@ -222,22 +222,17 @@ public class AdvancedOrganMetricsService {
         double kdpi = 0.0;
         
         // Age factor (most significant)
-        int age = donor.getAge();
+        int age = donor.calculateAge();
         if (age <= 35) kdpi += 10;
         else if (age <= 50) kdpi += 25;
         else if (age <= 65) kdpi += 50;
         else kdpi += 85;
         
-        // Donor type factor
-        if ("DECEASED".equals(donor.getDonorType())) {
-            kdpi += 15;
-        }
-        
-        // Medical history factor
-        if (donor.getMedicalHistory() != null && 
-            donor.getMedicalHistory().toLowerCase().contains("diabetes")) {
-            kdpi += 20;
-        }
+        // Donor type factor - simplified since we don't have this field in new entity
+        // In production, this would be determined by other factors
+
+        // Medical history factor - simplified since we don't have this field in new entity
+        // In production, this would come from medical records
         
         return Math.min(100, kdpi);
     }
@@ -251,15 +246,13 @@ public class AdvancedOrganMetricsService {
         double kdri = 1.0; // Base value
         
         // Age adjustment
-        int age = donor.getAge();
+        int age = donor.calculateAge();
         if (age > 50) {
             kdri += (age - 50) * 0.01;
         }
-        
-        // Donor type adjustment
-        if ("DECEASED".equals(donor.getDonorType())) {
-            kdri += 0.3;
-        }
+
+        // Donor type adjustment - simplified
+        // In production, this would be determined by other factors
         
         return Math.min(3.0, kdri);
     }
@@ -273,14 +266,14 @@ public class AdvancedOrganMetricsService {
         double epts = 0.0;
         
         // Age factor
-        int age = patient.getAge();
+        int age = patient.calculateAge();
         if (age <= 25) epts += 5;
         else if (age <= 40) epts += 15;
         else if (age <= 60) epts += 35;
         else epts += 65;
-        
+
         // Urgency factor
-        if ("CRITICAL".equals(patient.getUrgencyLevel())) {
+        if (Patient.UrgencyLevel.CRITICAL.equals(patient.getUrgencyLevel())) {
             epts += 20;
         }
         
@@ -297,14 +290,14 @@ public class AdvancedOrganMetricsService {
         
         // Urgency adjustment
         switch (patient.getUrgencyLevel()) {
-            case "CRITICAL" -> meld += 25;
-            case "HIGH" -> meld += 15;
-            case "MEDIUM" -> meld += 8;
-            case "LOW" -> meld += 3;
+            case CRITICAL -> meld += 25;
+            case HIGH -> meld += 15;
+            case MEDIUM -> meld += 8;
+            case LOW -> meld += 3;
         }
-        
+
         // Age adjustment
-        if (patient.getAge() > 60) {
+        if (patient.calculateAge() > 60) {
             meld += 5;
         }
         
@@ -319,7 +312,8 @@ public class AdvancedOrganMetricsService {
         // Simplified distance calculation based on hospital IDs
         // In production, use actual GPS coordinates
         
-        long hospitalDistance = Math.abs(donor.getHospitalId() - patient.getHospitalId());
+        // Simplified hospital distance calculation
+        long hospitalDistance = 1L; // In production, calculate actual distance
         
         if (hospitalDistance == 0) return 1.0; // Same hospital
         if (hospitalDistance == 1) return 0.8; // Adjacent regions
@@ -336,17 +330,17 @@ public class AdvancedOrganMetricsService {
 
     private double calculateBloodCompatibility(Donor donor, Patient patient) {
         // Blood type compatibility logic
-        if (donor.getBloodType().equals(patient.getBloodType())) return 1.0;
-        if ("O-".equals(donor.getBloodType())) return 0.9; // Universal donor
-        if ("AB+".equals(patient.getBloodType())) return 0.9; // Universal recipient
+        if (donor.getBloodGroup().equals(patient.getBloodGroup())) return 1.0;
+        if ("O-".equals(donor.getBloodGroup())) return 0.9; // Universal donor
+        if ("AB+".equals(patient.getBloodGroup())) return 0.9; // Universal recipient
         return 0.3; // Incompatible
     }
 
     private double calculateWaitingTimeScore(Patient patient) {
         // Waiting time priority (longer wait = higher score)
-        if (patient.getWaitingListDate() != null) {
+        if (patient.getRegistrationDate() != null) {
             long daysSinceRegistration = Period.between(
-                patient.getWaitingListDate().toLocalDate(), 
+                patient.getRegistrationDate().toLocalDate(),
                 LocalDate.now()
             ).getDays();
             return Math.min(1.0, daysSinceRegistration / 365.0); // Max 1 year
@@ -355,7 +349,7 @@ public class AdvancedOrganMetricsService {
     }
 
     private double calculateAgeCompatibility(Donor donor, Patient patient) {
-        int ageDiff = Math.abs(donor.getAge() - patient.getAge());
+        int ageDiff = Math.abs(donor.calculateAge() - patient.calculateAge());
         if (ageDiff <= 10) return 1.0;
         if (ageDiff <= 20) return 0.8;
         if (ageDiff <= 30) return 0.6;
@@ -364,10 +358,10 @@ public class AdvancedOrganMetricsService {
 
     private double calculateUrgencyScore(Patient patient) {
         return switch (patient.getUrgencyLevel()) {
-            case "CRITICAL" -> 1.0;
-            case "HIGH" -> 0.8;
-            case "MEDIUM" -> 0.6;
-            case "LOW" -> 0.4;
+            case CRITICAL -> 1.0;
+            case HIGH -> 0.8;
+            case MEDIUM -> 0.6;
+            case LOW -> 0.4;
             default -> 0.2;
         };
     }

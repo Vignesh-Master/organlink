@@ -3,6 +3,7 @@ package com.organlink;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
@@ -28,6 +29,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @EnableCaching
 @EnableAsync
 @EnableTransactionManagement
+@ComponentScan(basePackages = {"com.organlink"})
 public class OrganLinkApplication {
 
     public static void main(String[] args) {
@@ -41,10 +43,10 @@ public class OrganLinkApplication {
             
             ✅ Application Started Successfully!
             
-            📍 Server: http://localhost:8080
-            📋 API Base: http://localhost:8080/api/v1
-            📚 Swagger UI: http://localhost:8080/swagger-ui.html
-            🔍 Health Check: http://localhost:8080/api/v1/actuator/health
+            📍 Server: http://localhost:8081
+            📋 API Base: http://localhost:8081/api/v1
+            📚 Swagger UI: http://localhost:8081/swagger-ui.html
+            🔍 Health Check: http://localhost:8081/api/v1/actuator/health
             
             🏥 Multi-tenant Hospital Management System
             🫀 AI-Powered Organ Matching

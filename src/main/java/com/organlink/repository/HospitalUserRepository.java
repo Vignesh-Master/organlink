@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -26,6 +27,16 @@ public interface HospitalUserRepository extends JpaRepository<HospitalUser, Long
      * Find hospital user by hospital ID
      */
     Optional<HospitalUser> findByHospitalId(Long hospitalId);
+
+    /**
+     * Find hospital user by user ID and hospital ID (for authentication)
+     */
+    Optional<HospitalUser> findByUserIdAndHospitalId(String userId, Long hospitalId);
+
+    /**
+     * Find all hospital users by hospital ID
+     */
+    List<HospitalUser> findAllByHospitalId(Long hospitalId);
 
     /**
      * Check if user ID exists

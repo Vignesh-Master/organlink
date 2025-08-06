@@ -3,12 +3,14 @@ package com.organlink.model.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import lombok.ToString;
 import lombok.EqualsAndHashCode;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,10 +24,10 @@ import java.util.List;
            @UniqueConstraint(columnNames = "name"),
            @UniqueConstraint(columnNames = "code")
        })
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 @ToString(callSuper = true, exclude = {"states"})
 @EqualsAndHashCode(callSuper = true, exclude = {"states"})
 public class Country extends BaseEntity {
@@ -41,6 +43,7 @@ public class Country extends BaseEntity {
     private String code;
 
     @OneToMany(mappedBy = "country", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<State> states = new ArrayList<>();
 
     // Custom constructor for convenience
@@ -57,11 +60,11 @@ public class Country extends BaseEntity {
     // Helper methods for bidirectional relationship management
     public void addState(State state) {
         states.add(state);
-        state.setCountry(this);
+        // state.setCountry(this); // Will be enabled once State entity is fixed
     }
 
     public void removeState(State state) {
         states.remove(state);
-        state.setCountry(null);
+        // state.setCountry(null); // Will be enabled once State entity is fixed
     }
 }

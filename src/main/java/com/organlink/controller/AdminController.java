@@ -2,10 +2,16 @@ package com.organlink.controller;
 
 import com.organlink.model.entity.Hospital;
 import com.organlink.model.entity.HospitalUser;
+import com.organlink.model.entity.Organization;
 import com.organlink.model.entity.State;
+import com.organlink.model.entity.Country;
 import com.organlink.repository.HospitalRepository;
 import com.organlink.repository.HospitalUserRepository;
 import com.organlink.repository.StateRepository;
+import com.organlink.repository.CountryRepository;
+import com.organlink.service.CountryService;
+import com.organlink.service.StateService;
+import com.organlink.service.OrganizationService;
 import com.organlink.utils.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -49,6 +55,10 @@ public class AdminController {
     private final HospitalRepository hospitalRepository;
     private final HospitalUserRepository hospitalUserRepository;
     private final StateRepository stateRepository;
+    private final CountryRepository countryRepository;
+    private final CountryService countryService;
+    private final StateService stateService;
+    private final OrganizationService organizationService;
     private final PasswordEncoder passwordEncoder;
 
     // Admin credentials (in production, this should be in database)
@@ -272,7 +282,7 @@ public class AdminController {
             if (request.getAddress() != null) hospital.setAddress(request.getAddress());
             if (request.getCity() != null) hospital.setCity(request.getCity());
             if (request.getContactNumber() != null) hospital.setContactNumber(request.getContactNumber());
-            if (request.getEmailAddress() != null) hospital.setEmailAddress(request.getEmailAddress());
+            if (request.getEmail() != null) hospital.setEmail(request.getEmail());
             if (request.getIsActive() != null) hospital.setIsActive(request.getIsActive());
             
             hospital.setUpdatedAt(LocalDateTime.now());
@@ -344,7 +354,8 @@ public class AdminController {
                description = "Reset password for hospital user")
     public ResponseEntity<ApiResponse<Object>> resetHospitalPassword(
             @Parameter(description = "Hospital ID")
-            @PathVariable Long hospitalId) {
+            @PathVariable Long hospitalId,
+            @RequestBody Map<String, String> request) {
 
         logger.info("🔑 ADMIN: Resetting password for hospital ID: {}", hospitalId);
 
@@ -395,42 +406,7 @@ public class AdminController {
         }
     }
 
-    /**
-     * Reset organization password (Admin only)
-     */
-    @PostMapping("/organizations/{orgId}/reset-password")
-    @Operation(summary = "Reset organization password",
-               description = "Reset password for organization")
-    public ResponseEntity<ApiResponse<Object>> resetOrganizationPassword(
-            @Parameter(description = "Organization ID")
-            @PathVariable String orgId) {
 
-        logger.info("🔑 ADMIN: Resetting password for organization: {}", orgId);
-
-        try {
-            // Generate new password
-            String newPassword = "policy" + (System.currentTimeMillis() % 10000);
-
-            Map<String, Object> result = new HashMap<>();
-            result.put("orgId", orgId);
-            result.put("newPassword", newPassword);
-            result.put("message", "Organization password reset successfully");
-            result.put("note", "Password updated in test organization data");
-
-            ApiResponse<Object> response = ApiResponse.success(
-                    "Organization password reset successfully", result);
-
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-            logger.error("Failed to reset organization password: {}", e.getMessage());
-
-            ApiResponse<Object> response = ApiResponse.error(
-                    "Failed to reset organization password: " + e.getMessage());
-
-            return ResponseEntity.status(500).body(response);
-        }
-    }
 
     /**
      * Create new hospital (Admin only)
@@ -508,32 +484,50 @@ public class AdminController {
     }
 
     /**
+     * Get all countries (Admin only)
+     */
+    @GetMapping("/countries")
+    @Operation(summary = "Get all countries", description = "Get all countries for hospital creation")
+    public ResponseEntity<ApiResponse<List<Country>>> getAllCountries() {
+        try {
+            logger.info("🌍 ADMIN: Getting all countries");
+            List<Country> countries = countryRepository.findAllByOrderByNameAsc();
+            return ResponseEntity.ok(ApiResponse.success("Countries retrieved successfully", countries));
+        } catch (Exception e) {
+            logger.error("Failed to get countries: {}", e.getMessage());
+            return ResponseEntity.ok(ApiResponse.error("Failed to retrieve countries: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Get states by country ID (Admin only)
+     */
+    @GetMapping("/countries/{countryId}/states")
+    @Operation(summary = "Get states by country", description = "Get all states for a specific country")
+    public ResponseEntity<ApiResponse<List<State>>> getStatesByCountry(@PathVariable Long countryId) {
+        try {
+            logger.info("🏛️ ADMIN: Getting states for country: {}", countryId);
+            List<State> states = stateRepository.findByCountryIdOrderByNameAsc(countryId);
+            return ResponseEntity.ok(ApiResponse.success("States retrieved successfully", states));
+        } catch (Exception e) {
+            logger.error("Failed to get states: {}", e.getMessage());
+            return ResponseEntity.ok(ApiResponse.error("Failed to retrieve states: " + e.getMessage()));
+        }
+    }
+
+    /**
      * Get all organizations (Admin only)
      */
     @GetMapping("/organizations")
-    @Operation(summary = "Get all organizations",
-               description = "Get all global organizations for admin")
-    public ResponseEntity<ApiResponse<Object>> getAllOrganizations() {
+    @Operation(summary = "Get all organizations", description = "Get all global organizations for admin")
+    public ResponseEntity<ApiResponse<List<Organization>>> getAllOrganizations() {
         try {
             logger.info("📋 ADMIN: Getting all organizations");
-
-            // Simple organizations data stored in memory for now
-            List<Map<String, Object>> organizations = getTestOrganizations();
-
-            Map<String, Object> response = new HashMap<>();
-            response.put("organizations", organizations);
-            response.put("count", organizations.size());
-            response.put("message", "Organizations retrieved successfully");
-
-            return ResponseEntity.ok(ApiResponse.success("Organizations retrieved successfully", response));
-
+            List<Organization> organizations = organizationService.getAllOrganizations();
+            return ResponseEntity.ok(ApiResponse.success("Organizations retrieved successfully", organizations));
         } catch (Exception e) {
             logger.error("Failed to get organizations: {}", e.getMessage());
-
-            ApiResponse<Object> response = ApiResponse.error(
-                    "Failed to retrieve organizations: " + e.getMessage());
-
-            return ResponseEntity.status(500).body(response);
+            return ResponseEntity.ok(ApiResponse.error("Failed to retrieve organizations: " + e.getMessage()));
         }
     }
 
@@ -541,41 +535,118 @@ public class AdminController {
      * Create new organization (Admin only)
      */
     @PostMapping("/organizations")
-    @Operation(summary = "Create organization",
-               description = "Create new organization for policy voting")
-    public ResponseEntity<ApiResponse<Object>> createOrganization(@RequestBody CreateOrganizationRequest request) {
+    @Operation(summary = "Create organization", description = "Create new organization for policy voting")
+    public ResponseEntity<ApiResponse<Organization>> createOrganization(@RequestBody CreateOrganizationRequest request) {
         try {
             logger.info("🏢 ADMIN: Creating organization: {}", request.getName());
 
-            // Check if organization already exists
-            boolean exists = createdOrganizations.stream()
-                .anyMatch(org -> request.getOrgId().equals(org.get("orgId")));
+            // Create organization entity
+            Organization organization = new Organization();
+            organization.setOrgId(request.getOrgId());
+            organization.setName(request.getName());
+            organization.setLocation(request.getLocation());
+            organization.setUsername(request.getUsername());
+            organization.setPassword(request.getPassword());
+            organization.setCanVote(request.getCanVote() != null ? request.getCanVote() : true);
+            organization.setCanPropose(request.getCanPropose() != null ? request.getCanPropose() : true);
+            organization.setRegisterBlockchain(request.getRegisterBlockchain() != null ? request.getRegisterBlockchain() : false);
+            organization.setTransactionHash(request.getTransactionHash());
 
-            if (exists) {
-                return ResponseEntity.ok(ApiResponse.error("Organization with this ID already exists: " + request.getOrgId()));
-            }
-
-            // Create organization object
-            Map<String, Object> organization = new HashMap<>();
-            organization.put("orgId", request.getOrgId());
-            organization.put("name", request.getName());
-            organization.put("isActive", true);
-            organization.put("createdAt", LocalDateTime.now().toString());
-
-            // Store in memory (in production, save to database)
-            createdOrganizations.add(organization);
-
-            Map<String, Object> result = new HashMap<>();
-            result.put("orgId", request.getOrgId());
-            result.put("name", request.getName());
-            result.put("message", "Organization created successfully");
-            result.put("note", "Global organization registered for policy voting");
-
-            return ResponseEntity.ok(ApiResponse.success("Organization created successfully", result));
+            Organization savedOrganization = organizationService.createOrganization(organization);
+            return ResponseEntity.ok(ApiResponse.success("Organization created successfully", savedOrganization));
 
         } catch (Exception e) {
             logger.error("Failed to create organization: {}", e.getMessage());
             return ResponseEntity.ok(ApiResponse.error("Failed to create organization: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Get organization by ID (Admin only)
+     */
+    @GetMapping("/organizations/{id}")
+    @Operation(summary = "Get organization by ID", description = "Get organization details by ID")
+    public ResponseEntity<ApiResponse<Organization>> getOrganizationById(@PathVariable Long id) {
+        try {
+            logger.info("📋 ADMIN: Getting organization by ID: {}", id);
+            Organization organization = organizationService.getOrganizationById(id);
+            return ResponseEntity.ok(ApiResponse.success("Organization retrieved successfully", organization));
+        } catch (Exception e) {
+            logger.error("Failed to get organization: {}", e.getMessage());
+            return ResponseEntity.ok(ApiResponse.error("Failed to retrieve organization: " + e.getMessage()));
+        }
+    }
+
+
+
+    /**
+     * Update organization (Admin only)
+     */
+    @PutMapping("/organizations/{id}")
+    @Operation(summary = "Update organization", description = "Update organization information")
+    public ResponseEntity<ApiResponse<Organization>> updateOrganization(
+            @PathVariable Long id, @RequestBody UpdateOrganizationRequest request) {
+        try {
+            logger.info("🏢 ADMIN: Updating organization: {}", id);
+
+            Organization organizationUpdate = new Organization();
+            organizationUpdate.setName(request.getName());
+            organizationUpdate.setLocation(request.getLocation());
+            organizationUpdate.setCanVote(request.getCanVote());
+            organizationUpdate.setCanPropose(request.getCanPropose());
+            organizationUpdate.setRegisterBlockchain(request.getRegisterBlockchain());
+            organizationUpdate.setTransactionHash(request.getTransactionHash());
+            organizationUpdate.setIsActive(request.getIsActive());
+
+            Organization updatedOrganization = organizationService.updateOrganization(id, organizationUpdate);
+            return ResponseEntity.ok(ApiResponse.success("Organization updated successfully", updatedOrganization));
+
+        } catch (Exception e) {
+            logger.error("Failed to update organization: {}", e.getMessage());
+            return ResponseEntity.ok(ApiResponse.error("Failed to update organization: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Reset organization password (Admin only)
+     */
+    @PostMapping("/organizations/{id}/reset-password")
+    @Operation(summary = "Reset organization password", description = "Reset password for organization")
+    public ResponseEntity<ApiResponse<Object>> resetOrganizationPassword(
+            @PathVariable Long id, @RequestBody ResetPasswordRequest request) {
+        try {
+            logger.info("🔑 ADMIN: Resetting password for organization: {}", id);
+            organizationService.resetPassword(id, request.getNewPassword());
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("message", "Password reset successfully");
+            result.put("organizationId", id);
+
+            return ResponseEntity.ok(ApiResponse.success("Password reset successfully", result));
+        } catch (Exception e) {
+            logger.error("Failed to reset organization password: {}", e.getMessage());
+            return ResponseEntity.ok(ApiResponse.error("Failed to reset password: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Delete organization (Admin only)
+     */
+    @DeleteMapping("/organizations/{id}")
+    @Operation(summary = "Delete organization", description = "Delete organization (soft delete)")
+    public ResponseEntity<ApiResponse<Object>> deleteOrganization(@PathVariable Long id) {
+        try {
+            logger.info("🗑️ ADMIN: Deleting organization: {}", id);
+            organizationService.deleteOrganization(id);
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("message", "Organization deleted successfully");
+            result.put("organizationId", id);
+
+            return ResponseEntity.ok(ApiResponse.success("Organization deleted successfully", result));
+        } catch (Exception e) {
+            logger.error("Failed to delete organization: {}", e.getMessage());
+            return ResponseEntity.ok(ApiResponse.error("Failed to delete organization: " + e.getMessage()));
         }
     }
 
@@ -596,9 +667,10 @@ public class AdminController {
 
             Hospital hospital = hospitalOpt.get();
 
-            // Delete hospital user first
-            Optional<HospitalUser> userOpt = hospitalUserRepository.findByHospitalId(hospitalId);
-            userOpt.ifPresent(hospitalUserRepository::delete);
+            // Delete all hospital users first (there might be multiple)
+            List<HospitalUser> hospitalUsers = hospitalUserRepository.findAllByHospitalId(hospitalId);
+            int deletedUsers = hospitalUsers.size();
+            hospitalUserRepository.deleteAll(hospitalUsers);
 
             // Delete hospital
             hospitalRepository.delete(hospital);
@@ -606,7 +678,8 @@ public class AdminController {
             Map<String, Object> result = new HashMap<>();
             result.put("hospitalId", hospitalId);
             result.put("hospitalName", hospital.getName());
-            result.put("message", "Hospital deleted successfully");
+            result.put("deletedUsers", deletedUsers);
+            result.put("message", "Hospital and " + deletedUsers + " associated users deleted successfully");
 
             return ResponseEntity.ok(ApiResponse.success("Hospital deleted successfully", result));
 
@@ -616,35 +689,7 @@ public class AdminController {
         }
     }
 
-    /**
-     * Delete organization (Admin only)
-     */
-    @DeleteMapping("/organizations/{orgId}")
-    @Operation(summary = "Delete organization",
-               description = "Delete organization")
-    public ResponseEntity<ApiResponse<Object>> deleteOrganization(@PathVariable String orgId) {
-        try {
-            logger.info("🗑️ ADMIN: Deleting organization: {}", orgId);
 
-            // Remove organization from memory
-            boolean removed = createdOrganizations.removeIf(org -> orgId.equals(org.get("orgId")));
-
-            if (!removed) {
-                return ResponseEntity.ok(ApiResponse.error("Organization not found: " + orgId));
-            }
-
-            Map<String, Object> result = new HashMap<>();
-            result.put("orgId", orgId);
-            result.put("message", "Organization deleted successfully");
-            result.put("note", "Organization removed from memory");
-
-            return ResponseEntity.ok(ApiResponse.success("Organization deleted successfully", result));
-
-        } catch (Exception e) {
-            logger.error("Failed to delete organization: {}", e.getMessage());
-            return ResponseEntity.ok(ApiResponse.error("Failed to delete organization: " + e.getMessage()));
-        }
-    }
 
 
 
@@ -740,7 +785,6 @@ public class AdminController {
         private String city;
         private String contactNumber;
         private String email;
-        private String emailAddress;
         private String licenseNumber;
         private Long countryId;  // For frontend country selection
         private Long stateId;    // For frontend state selection
@@ -760,8 +804,8 @@ public class AdminController {
         public String getContactNumber() { return contactNumber; }
         public void setContactNumber(String contactNumber) { this.contactNumber = contactNumber; }
         
-        public String getEmailAddress() { return emailAddress; }
-        public void setEmailAddress(String emailAddress) { this.emailAddress = emailAddress; }
+        public String getEmail() { return email; }
+        public void setEmail(String email) { this.email = email; }
         
         public String getLicenseNumber() { return licenseNumber; }
         public void setLicenseNumber(String licenseNumber) { this.licenseNumber = licenseNumber; }
@@ -775,9 +819,6 @@ public class AdminController {
         public String getCode() { return code; }
         public void setCode(String code) { this.code = code; }
 
-        public String getEmail() { return email; }
-        public void setEmail(String email) { this.email = email; }
-
         public Long getCountryId() { return countryId; }
         public void setCountryId(Long countryId) { this.countryId = countryId; }
 
@@ -785,26 +826,14 @@ public class AdminController {
         public void setStateId(Long stateId) { this.stateId = stateId; }
     }
 
-    public static class CreateOrganizationRequest {
-        private String orgId;
-        private String name;
-        private String password;
 
-        // Getters and setters
-        public String getOrgId() { return orgId; }
-        public void setOrgId(String orgId) { this.orgId = orgId; }
-        public String getName() { return name; }
-        public void setName(String name) { this.name = name; }
-        public String getPassword() { return password; }
-        public void setPassword(String password) { this.password = password; }
-    }
 
     public static class UpdateHospitalRequest {
         private String name;
         private String address;
         private String city;
         private String contactNumber;
-        private String emailAddress;
+        private String email;
         private Boolean isActive;
 
         // Getters and setters
@@ -820,8 +849,8 @@ public class AdminController {
         public String getContactNumber() { return contactNumber; }
         public void setContactNumber(String contactNumber) { this.contactNumber = contactNumber; }
         
-        public String getEmailAddress() { return emailAddress; }
-        public void setEmailAddress(String emailAddress) { this.emailAddress = emailAddress; }
+        public String getEmail() { return email; }
+        public void setEmail(String email) { this.email = email; }
         
         public Boolean getIsActive() { return isActive; }
         public void setIsActive(Boolean isActive) { this.isActive = isActive; }
@@ -855,5 +884,70 @@ public class AdminController {
         public void setActivePolicies(Long activePolicies) { this.activePolicies = activePolicies; }
     }
 
+    // Organization DTOs
+    public static class CreateOrganizationRequest {
+        private String orgId;
+        private String name;
+        private String location;
+        private String username;
+        private String password;
+        private Boolean canVote;
+        private Boolean canPropose;
+        private Boolean registerBlockchain;
+        private String transactionHash;
+
+        // Getters and setters
+        public String getOrgId() { return orgId; }
+        public void setOrgId(String orgId) { this.orgId = orgId; }
+        public String getName() { return name; }
+        public void setName(String name) { this.name = name; }
+        public String getLocation() { return location; }
+        public void setLocation(String location) { this.location = location; }
+        public String getUsername() { return username; }
+        public void setUsername(String username) { this.username = username; }
+        public String getPassword() { return password; }
+        public void setPassword(String password) { this.password = password; }
+        public Boolean getCanVote() { return canVote; }
+        public void setCanVote(Boolean canVote) { this.canVote = canVote; }
+        public Boolean getCanPropose() { return canPropose; }
+        public void setCanPropose(Boolean canPropose) { this.canPropose = canPropose; }
+        public Boolean getRegisterBlockchain() { return registerBlockchain; }
+        public void setRegisterBlockchain(Boolean registerBlockchain) { this.registerBlockchain = registerBlockchain; }
+        public String getTransactionHash() { return transactionHash; }
+        public void setTransactionHash(String transactionHash) { this.transactionHash = transactionHash; }
+    }
+
+    public static class UpdateOrganizationRequest {
+        private String name;
+        private String location;
+        private Boolean canVote;
+        private Boolean canPropose;
+        private Boolean registerBlockchain;
+        private String transactionHash;
+        private Boolean isActive;
+
+        // Getters and setters
+        public String getName() { return name; }
+        public void setName(String name) { this.name = name; }
+        public String getLocation() { return location; }
+        public void setLocation(String location) { this.location = location; }
+        public Boolean getCanVote() { return canVote; }
+        public void setCanVote(Boolean canVote) { this.canVote = canVote; }
+        public Boolean getCanPropose() { return canPropose; }
+        public void setCanPropose(Boolean canPropose) { this.canPropose = canPropose; }
+        public Boolean getRegisterBlockchain() { return registerBlockchain; }
+        public void setRegisterBlockchain(Boolean registerBlockchain) { this.registerBlockchain = registerBlockchain; }
+        public String getTransactionHash() { return transactionHash; }
+        public void setTransactionHash(String transactionHash) { this.transactionHash = transactionHash; }
+        public Boolean getIsActive() { return isActive; }
+        public void setIsActive(Boolean isActive) { this.isActive = isActive; }
+    }
+
+    public static class ResetPasswordRequest {
+        private String newPassword;
+
+        public String getNewPassword() { return newPassword; }
+        public void setNewPassword(String newPassword) { this.newPassword = newPassword; }
+    }
 
 }

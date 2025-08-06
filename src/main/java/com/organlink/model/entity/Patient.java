@@ -1,11 +1,15 @@
 package com.organlink.model.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.Email;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import lombok.ToString;
+import lombok.EqualsAndHashCode;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -15,109 +19,193 @@ import java.time.LocalDateTime;
  * Each patient belongs to a specific hospital (multi-tenant)
  */
 @Entity
-@Table(name = "patients")
-@Data
+@Table(name = "patients",
+       uniqueConstraints = {
+           @UniqueConstraint(columnNames = "patient_id")
+       },
+       indexes = {
+           @Index(name = "idx_patient_id", columnList = "patient_id"),
+           @Index(name = "idx_patient_blood_group", columnList = "blood_group"),
+           @Index(name = "idx_patient_organ_type", columnList = "organ_type_id"),
+           @Index(name = "idx_patient_urgency", columnList = "urgency_level"),
+           @Index(name = "idx_patient_state", columnList = "state_id"),
+           @Index(name = "idx_patient_hospital", columnList = "hospital_id"),
+           @Index(name = "idx_patient_active", columnList = "is_active")
+       })
+@Getter
+@Setter
 @NoArgsConstructor
-@AllArgsConstructor
-public class Patient {
+@ToString(callSuper = true)
+@EqualsAndHashCode(callSuper = true)
+public class Patient extends BaseEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @NotBlank(message = "Patient ID is required")
+    @Size(max = 50, message = "Patient ID cannot exceed 50 characters")
+    @Column(name = "patient_id", nullable = false, length = 50, unique = true)
+    private String patientId;
 
-    @Column(name = "patient_name", nullable = false, length = 100)
-    private String patientName;
+    @NotBlank(message = "First name is required")
+    @Size(max = 100, message = "First name cannot exceed 100 characters")
+    @Column(name = "first_name", nullable = false, length = 100)
+    private String firstName;
 
-    @Column(name = "age", nullable = false)
-    private Integer age;
+    @NotBlank(message = "Last name is required")
+    @Size(max = 100, message = "Last name cannot exceed 100 characters")
+    @Column(name = "last_name", nullable = false, length = 100)
+    private String lastName;
 
-    @Column(name = "blood_type", nullable = false, length = 5)
-    private String bloodType;
+    @NotNull(message = "Date of birth is required")
+    @Column(name = "date_of_birth", nullable = false)
+    private LocalDate dateOfBirth;
 
-    @Column(name = "gender", length = 10)
-    private String gender;
+    @NotBlank(message = "Blood group is required")
+    @Size(max = 5, message = "Blood group cannot exceed 5 characters")
+    @Column(name = "blood_group", nullable = false, length = 5)
+    private String bloodGroup;
 
-    @Column(name = "organ_needed", nullable = false, length = 50)
-    private String organNeeded;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "gender", nullable = false)
+    private Gender gender;
 
-    @Column(name = "urgency_level", nullable = false, length = 20)
-    private String urgencyLevel; // LOW, MEDIUM, HIGH, CRITICAL
+    @Size(max = 20, message = "Phone cannot exceed 20 characters")
+    @Column(name = "phone", length = 20)
+    private String phone;
 
-    @Column(name = "medical_condition", columnDefinition = "TEXT")
-    private String medicalCondition;
-
-    @Column(name = "medical_history", columnDefinition = "TEXT")
-    private String medicalHistory;
-
-    @Column(name = "contact_number", length = 20)
-    private String contactNumber;
+    @Email(message = "Invalid email format")
+    @Size(max = 100, message = "Email cannot exceed 100 characters")
+    @Column(name = "email", length = 100)
+    private String email;
 
     @Column(name = "address", columnDefinition = "TEXT")
     private String address;
 
-    @Column(name = "hospital_id", nullable = false)
-    private Long hospitalId;
+    @Size(max = 100, message = "City cannot exceed 100 characters")
+    @Column(name = "city", length = 100)
+    private String city;
 
-    @Column(name = "tenant_id", nullable = false, length = 50)
-    private String tenantId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "state_id")
+    private State state;
 
-    @Column(name = "status", nullable = false, length = 20)
-    private String status = "WAITING"; // WAITING, MATCHED, TRANSPLANTED, INACTIVE
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "hospital_id")
+    private Hospital hospital;
 
-    @Column(name = "hla_typing", columnDefinition = "TEXT")
-    private String hlaTyping;
+    @NotNull(message = "Organ type is required")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "organ_type_id", nullable = false)
+    private OrganType organType;
 
-    @Column(name = "cross_match_results", columnDefinition = "TEXT")
-    private String crossMatchResults;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "urgency_level", nullable = false)
+    private UrgencyLevel urgencyLevel = UrgencyLevel.MEDIUM;
 
-    @Column(name = "date_of_birth")
-    private LocalDate dateOfBirth;
+    @Column(name = "medical_condition", columnDefinition = "TEXT")
+    private String medicalCondition;
 
-    @Column(name = "registration_date", nullable = false)
+    @Column(name = "registration_date")
     private LocalDateTime registrationDate;
-
-    @Column(name = "waiting_list_date")
-    private LocalDateTime waitingListDate;
-
-    @Column(name = "priority_score")
-    private Integer priorityScore;
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-
-    @Version
-    private Long version;
-
-    // Relationship with Hospital
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "hospital_id", insertable = false, updatable = false)
-    private Hospital hospital;
-
-    /**
-     * Check if patient is eligible for matching
-     */
-    public boolean isEligibleForMatching() {
-        return isActive && "WAITING".equals(status);
+    // Enums
+    public enum Gender {
+        MALE, FEMALE, OTHER
     }
 
-    /**
-     * Get urgency priority (higher number = more urgent)
-     */
-    public int getUrgencyPriority() {
-        return switch (urgencyLevel) {
-            case "CRITICAL" -> 4;
-            case "HIGH" -> 3;
-            case "MEDIUM" -> 2;
-            case "LOW" -> 1;
-            default -> 0;
-        };
+    public enum UrgencyLevel {
+        LOW, MEDIUM, HIGH, CRITICAL
+    }
+
+    // Helper methods
+    public String getFullName() {
+        return firstName + " " + lastName;
+    }
+
+    public boolean isActive() {
+        return isActive != null && isActive;
+    }
+
+    // Age calculation helper
+    public Integer calculateAge() {
+        if (dateOfBirth != null) {
+            return LocalDate.now().getYear() - dateOfBirth.getYear();
+        }
+        return null;
+    }
+
+    // Blood type compatibility helper
+    public boolean isBloodTypeCompatible(String donorBloodType) {
+        if (bloodGroup == null || donorBloodType == null) {
+            return false;
+        }
+        
+        // Basic blood type compatibility logic for recipients
+        switch (bloodGroup.toUpperCase()) {
+            case "AB":
+                return true; // Universal recipient
+            case "A":
+                return donorBloodType.toUpperCase().matches("A|O");
+            case "B":
+                return donorBloodType.toUpperCase().matches("B|O");
+            case "O":
+                return "O".equals(donorBloodType.toUpperCase());
+            default:
+                return false;
+        }
+    }
+
+    // Urgency level helpers
+    public boolean isCritical() {
+        return UrgencyLevel.CRITICAL.equals(urgencyLevel);
+    }
+
+    public boolean isHighPriority() {
+        return UrgencyLevel.HIGH.equals(urgencyLevel) || UrgencyLevel.CRITICAL.equals(urgencyLevel);
+    }
+
+    // Status management
+    public void activate() {
+        this.isActive = true;
+    }
+
+    public void deactivate() {
+        this.isActive = false;
+    }
+
+    // Urgency management
+    public void escalateUrgency() {
+        switch (urgencyLevel) {
+            case LOW:
+                this.urgencyLevel = UrgencyLevel.MEDIUM;
+                break;
+            case MEDIUM:
+                this.urgencyLevel = UrgencyLevel.HIGH;
+                break;
+            case HIGH:
+                this.urgencyLevel = UrgencyLevel.CRITICAL;
+                break;
+            case CRITICAL:
+                // Already at highest level
+                break;
+        }
+    }
+
+    public void reduceUrgency() {
+        switch (urgencyLevel) {
+            case CRITICAL:
+                this.urgencyLevel = UrgencyLevel.HIGH;
+                break;
+            case HIGH:
+                this.urgencyLevel = UrgencyLevel.MEDIUM;
+                break;
+            case MEDIUM:
+                this.urgencyLevel = UrgencyLevel.LOW;
+                break;
+            case LOW:
+                // Already at lowest level
+                break;
+        }
     }
 }

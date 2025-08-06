@@ -1,0 +1,77 @@
+{
+  "id": "hospital-module-env",
+  "name": "Hospital Module Environment - COMPLETE",
+  "values": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8081/api/v1",
+      "enabled": true
+    },
+    {
+      "key": "hospitalId",
+      "value": "1",
+      "enabled": true
+    },
+    {
+      "key": "hospitalUserId",
+      "value": "test_hospital",
+      "enabled": true
+    },
+    {
+      "key": "hospitalPassword",
+      "value": "test123",
+      "enabled": true
+    },
+    {
+      "key": "hospitalTenantId",
+      "value": "test-hosp",
+      "enabled": true
+    },
+    {
+      "key": "hospitalToken",
+      "value": "hospital-token-1",
+      "enabled": true
+    },
+    {
+      "key": "tamilNaduStateId",
+      "value": "25",
+      "enabled": true
+    },
+    {
+      "key": "delhiStateId",
+      "value": "29",
+      "enabled": true
+    },
+    {
+      "key": "indiaCountryId",
+      "value": "1",
+      "enabled": true
+    },
+    {
+      "key": "patientId",
+      "value": "1",
+      "enabled": true
+    },
+    {
+      "key": "donorId",
+      "value": "1",
+      "enabled": true
+    },
+    {
+      "key": "signatureId",
+      "value": "1",
+      "enabled": true
+    },
+    {
+      "key": "adminUsername",
+      "value": "admin",
+      "enabled": true
+    },
+    {
+      "key": "adminPassword",
+      "value": "organlink@2024",
+      "enabled": true
+    }
+  ],
+  "_postman_variable_scope": "environment"
+}

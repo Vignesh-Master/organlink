@@ -13,15 +13,10 @@ import java.util.Optional;
 
 /**
  * Repository interface for Patient entity
- * Handles database operations for patient management with multi-tenant support
+ * Handles database operations for patient management
  */
 @Repository
 public interface PatientRepository extends JpaRepository<Patient, Long> {
-
-    /**
-     * Find patients by tenant ID (hospital-specific)
-     */
-    Page<Patient> findByTenantIdAndIsActiveTrue(String tenantId, Pageable pageable);
 
     /**
      * Find patients by hospital ID
@@ -29,62 +24,84 @@ public interface PatientRepository extends JpaRepository<Patient, Long> {
     Page<Patient> findByHospitalIdAndIsActiveTrue(Long hospitalId, Pageable pageable);
 
     /**
-     * Find patient by ID and tenant ID (security check)
+     * Find patient by ID and hospital ID (security check)
      */
-    Optional<Patient> findByIdAndTenantId(Long id, String tenantId);
+    Optional<Patient> findByIdAndHospitalId(Long id, Long hospitalId);
 
     /**
-     * Find waiting patients by organ type and tenant ID
+     * Find active patients
      */
-    List<Patient> findByOrganNeededAndTenantIdAndStatusAndIsActiveTrue(
-            String organNeeded, String tenantId, String status);
+    List<Patient> findByIsActiveTrue();
 
     /**
-     * Find waiting patients by organ type (cross-hospital matching)
+     * Find patients by organ type
      */
-    List<Patient> findByOrganNeededAndStatusAndIsActiveTrue(String organNeeded, String status);
+    List<Patient> findByOrganTypeIdAndIsActiveTrue(Long organTypeId);
 
     /**
-     * Find compatible patients by blood type and organ type (for matching)
+     * Find compatible patients by blood group and organ type (for matching)
      */
-    @Query("SELECT p FROM Patient p WHERE p.bloodType = :bloodType AND p.organNeeded = :organType " +
-           "AND p.status = 'WAITING' AND p.isActive = true ORDER BY p.urgencyLevel DESC, p.waitingListDate ASC")
-    List<Patient> findCompatiblePatients(@Param("bloodType") String bloodType, 
-                                       @Param("organType") String organType);
+    @Query("SELECT p FROM Patient p WHERE p.bloodGroup = :bloodGroup AND p.organType.id = :organTypeId " +
+           "AND p.isActive = true ORDER BY p.urgencyLevel DESC, p.registrationDate ASC")
+    List<Patient> findCompatiblePatients(@Param("bloodGroup") String bloodGroup,
+                                       @Param("organTypeId") Long organTypeId);
 
     /**
-     * Search patients by name within tenant
+     * Search patients by name
      */
-    @Query("SELECT p FROM Patient p WHERE p.tenantId = :tenantId AND p.isActive = true " +
-           "AND UPPER(p.patientName) LIKE UPPER(CONCAT('%', :searchTerm, '%'))")
-    Page<Patient> searchPatientsByTenant(@Param("tenantId") String tenantId, 
-                                       @Param("searchTerm") String searchTerm, 
-                                       Pageable pageable);
+    @Query("SELECT p FROM Patient p WHERE p.isActive = true " +
+           "AND (UPPER(p.firstName) LIKE UPPER(CONCAT('%', :searchTerm, '%')) " +
+           "OR UPPER(p.lastName) LIKE UPPER(CONCAT('%', :searchTerm, '%')))")
+    Page<Patient> searchPatients(@Param("searchTerm") String searchTerm, Pageable pageable);
 
     /**
-     * Count active patients by tenant
+     * Count active patients
      */
-    long countByTenantIdAndIsActiveTrue(String tenantId);
+    long countByIsActiveTrue();
 
     /**
-     * Count waiting patients by tenant
+     * Count active patients by hospital
      */
-    long countByTenantIdAndStatusAndIsActiveTrue(String tenantId, String status);
+    long countByHospitalIdAndIsActiveTrue(Long hospitalId);
 
     /**
-     * Find patients by status and tenant
+     * Find patients by hospital
      */
-    List<Patient> findByTenantIdAndStatusAndIsActiveTrue(String tenantId, String status);
+    List<Patient> findByHospitalIdAndIsActiveTrue(Long hospitalId);
 
     /**
-     * Find patients by urgency level and tenant
+     * Find patients by urgency level (for emergency matching)
      */
-    List<Patient> findByTenantIdAndUrgencyLevelAndIsActiveTrueOrderByWaitingListDateAsc(
-            String tenantId, String urgencyLevel);
+    List<Patient> findByUrgencyLevelAndIsActiveTrueOrderByRegistrationDateAsc(String urgencyLevel);
 
     /**
-     * Find critical patients across all hospitals (for emergency matching)
+     * Count patients by urgency level
      */
-    List<Patient> findByUrgencyLevelAndStatusAndIsActiveTrueOrderByWaitingListDateAsc(
-            String urgencyLevel, String status);
+    long countByUrgencyLevelAndIsActiveTrue(String urgencyLevel);
+
+    /**
+     * Find patients by name search
+     */
+    List<Patient> findByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase(String firstName, String lastName);
+
+    /**
+     * Find patients by name or ID search with pagination
+     */
+    Page<Patient> findByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCaseOrIdEquals(
+        String firstName, String lastName, Long id, Pageable pageable);
+
+    /**
+     * Find active patients ordered by registration date
+     */
+    Page<Patient> findByIsActiveTrueOrderByRegistrationDateDesc(Pageable pageable);
+
+    /**
+     * Find patients by blood group and hospital
+     */
+    List<Patient> findByBloodGroupAndHospitalIdAndIsActiveTrue(String bloodGroup, Long hospitalId);
+
+    /**
+     * Find patients by state
+     */
+    List<Patient> findByStateIdAndIsActiveTrue(Long stateId);
 }

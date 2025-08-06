@@ -4,12 +4,14 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import lombok.ToString;
 import lombok.EqualsAndHashCode;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,10 +27,10 @@ import java.util.List;
        indexes = {
            @Index(name = "idx_state_country", columnList = "country_id")
        })
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 @ToString(callSuper = true, exclude = {"hospitals"})
 @EqualsAndHashCode(callSuper = true, exclude = {"hospitals"})
 public class State extends BaseEntity {
@@ -49,6 +51,7 @@ public class State extends BaseEntity {
     private Country country;
 
     @OneToMany(mappedBy = "state", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
     private List<Hospital> hospitals = new ArrayList<>();
 
     // Custom constructor for convenience
@@ -61,11 +64,11 @@ public class State extends BaseEntity {
     // Helper methods for bidirectional relationship management
     public void addHospital(Hospital hospital) {
         hospitals.add(hospital);
-        hospital.setState(this);
+        // hospital.setState(this); // Will be enabled once Hospital entity is fixed
     }
 
     public void removeHospital(Hospital hospital) {
         hospitals.remove(hospital);
-        hospital.setState(null);
+        // hospital.setState(null); // Will be enabled once Hospital entity is fixed
     }
 }

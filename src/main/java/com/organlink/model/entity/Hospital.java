@@ -5,12 +5,14 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import lombok.ToString;
 import lombok.EqualsAndHashCode;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 
 
@@ -29,6 +31,7 @@ import lombok.EqualsAndHashCode;
            @Index(name = "idx_hospital_active", columnList = "is_active"),
            @Index(name = "idx_hospital_tenant", columnList = "tenant_id")
        })
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -55,14 +58,6 @@ public class Hospital extends BaseEntity {
 
     @Column(name = "contact_number", length = 20)
     private String contactNumber;
-
-    @Email(message = "Invalid email format")
-    @Column(name = "email_address", length = 100)
-    private String emailAddress;
-
-    @Size(max = 20, message = "Phone number cannot exceed 20 characters")
-    @Column(name = "phone", length = 20)
-    private String phone;
 
     @Email(message = "Invalid email format")
     @Size(max = 100, message = "Email cannot exceed 100 characters")
